@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web-Based Live Tracking (2 Peserta) - Jarot's Company Ultra Cycling</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #f8fafc; color: #0f172a; }
+    header {
+      background: #0f172a; color: #ffffff; padding: 10px 16px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    header h1 { font-size: 15px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .role-tag {
+      font-size: 11px; padding: 3px 8px; border-radius: 4px;
+      background: #1e293b; color: #94a3b8; border: 1px solid #334155;
+    }
+    .mode-switch-btn {
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      background: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; border: none;
+    }
+    .badge {
+      font-size: 12px; padding: 4px 10px; border-radius: 999px;
+      background: #334155; color: #e2e8f0; font-weight: 600;
+    }
+    .badge.aktif { background: #16a34a; color: #ffffff; }
+    .badge.replay { background: #2563eb; color: #ffffff; }
+    .badge.bahaya { background: #dc2626; color: #ffffff; animation: kedip 1s infinite; }
+    @keyframes kedip { 50% { opacity: 0.6; } }
+
+    #alertBanner {
+      display: none; background: #dc2626; color: #ffffff;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      justify-content: space-between; align-items: center; gap: 12px;
+    }
+    #alertBanner.tampil { display: flex; }
+
+    /* Bar Pengirim GPS HP Peserta (Mode 2.3) */
+    #pesertaPanel {
+      display: none; background: #eff6ff; border-bottom: 2px solid #93c5fd;
+      padding: 12px 16px; flex-direction: column; gap: 10px;
+    }
+    #pesertaPanel.tampil { display: flex; }
+    .peserta-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+    .peserta-stats { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: #1e3a8a; }
+    #senderLog {
+      font-size: 11px; color: #1e40af; background: #dbeafe;
+      padding: 6px 10px; border-radius: 6px; font-family: monospace;
+    }
+
+    #map { flex: 1; width: 100%; min-height: 260px; }
+
+    .panel {
+      background: #ffffff; border-top: 1px solid #e2e8f0; padding: 10px 16px;
+      display: flex; flex-direction: column; gap: 9px; max-height: 46vh; overflow-y: auto;
+    }
+
+    /* Bar Pemilih 2 Peserta */
+    .rider-selector-bar {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    }
+    .rider-pill {
+      display: flex; align-items: center; gap: 6px; padding: 5px 12px;
+      border-radius: 999px; border: 2px solid #cbd5e1; background: #f8fafc;
+      font-size: 12px; font-weight: 600; cursor: pointer; color: #334155;
+    }
+    .rider-pill.selected { border-color: #0f172a; background: #0f172a; color: #ffffff; }
+    .rider-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+    .panel-top {
+      display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center;
+    }
+    .info-grid { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; }
+    .info-item span { display: block; font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
+    .info-item strong { font-size: 13px; color: #0f172a; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    button, select, input[type="text"], input[type="file"] {
+      border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px;
+    }
+    button { background: #0f172a; color: #ffffff; font-weight: 500; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary, select { background: #e2e8f0; color: #0f172a; font-weight: 500; }
+    button.replay-btn { background: #2563eb; color: #ffffff; font-weight: 600; }
+    button.download { background: #15803d; color: #ffffff; font-weight: 600; }
+    button.warn-btn { background: #d97706; color: #ffffff; font-weight: 600; }
+    button.alarm-on { background: #b91c1c; color: #ffffff; }
+    input[type="text"] {
+      border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 500;
+    }
+
+    /* Bar Replay */
+    #replayBar {
+      display: none; flex-wrap: wrap; align-items: center; gap: 10px;
+      background: #eff6ff; border: 1px solid #bfdbfe; padding: 7px 12px; border-radius: 8px;
+    }
+    #replayBar.tampil { display: flex; }
+    #replaySlider { flex: 1; min-width: 140px; cursor: pointer; accent-color: #2563eb; }
+    #replayProgressText { font-size: 12px; font-weight: 600; color: #1e3a8a; min-width: 85px; }
+
+    /* Bar Admin Panitia */
+    #adminBar {
+      display: none; flex-direction: column; gap: 10px;
+      padding-top: 8px; border-top: 1px dashed #cbd5e1; font-size: 12px;
+    }
+    #adminBar.tampil { display: flex; }
+    .admin-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+    .admin-riders-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px;
+    }
+    .admin-rider-card {
+      background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px;
+      display: flex; flex-direction: column; gap: 5px;
+    }
+    .admin-rider-card input { width: 100%; padding: 4px 7px; font-size: 11px; }
+    #logStatus { color: #475569; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Ultra-Cycling Web Tracker (Jarots001 &amp; Jarots002)</h1>
+    <div class="header-right">
+      <button id="btnTogglePeserta" class="mode-switch-btn" onclick="togglePanelPeserta()">Mode HP Peserta (GPS)</button>
+      <span id="roleTag" class="role-tag">Penonton (Read-Only)</span>
+      <div id="statusBadge" class="badge">Memuat data...</div>
+    </div>
+  </header>
+
+  <div id="alertBanner">
+    <span id="alertText">PERINGATAN ADMIN: Peserta keluar dari jalur rute GPX!</span>
+    <button class="secondary" onclick="fokusKePeserta()">Lihat Posisi</button>
+  </div>
+
+  <!-- PANEL KHUSUS HP PESERTA (HTML5 GEOLOCATION SENDER) -->
+  <div id="pesertaPanel">
+    <div class="peserta-row">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <strong style="font-size:13px; color:#1e3a8a;">Terminal GPS HP:</strong>
+        <select id="senderSlotSelect" onchange="gantiSlotPengirim()">
+          <option value="0">Jarots001 — Channel #3597209</option>
+          <option value="1">Jarots002 — Channel #3597222</option>
+        </select>
+        <select id="senderIntervalSelect">
+          <option value="15000" selected>Kirim tiap 15 dtk</option>
+          <option value="30000">Kirim tiap 30 dtk</option>
+          <option value="60000">Kirim tiap 60 dtk</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button id="btnStartGps" class="download" onclick="mulaiKirimGpsHp()">Mulai Kirim GPS Asli</button>
+        <button id="btnStopGps" class="alarm-on" onclick="hentikanGpsHp()" disabled>Stop</button>
+        <button class="warn-btn" onclick="mulaiSimulasi2Peserta()">Simulasi 2 Peserta</button>
+      </div>
+    </div>
+    <div class="peserta-stats">
+      <span>Izin Lokasi: <strong id="gpsPermText">Belum Aktif</strong></span>
+      <span>Akurasi: <strong id="gpsAccText">-</strong></span>
+      <span>Baterai HP: <strong id="phoneBattText">Mendeteksi...</strong></span>
+      <span>Terkirim: <strong id="sentCountText">0 paket</strong></span>
+    </div>
+    <div id="senderLog">Siap mengirim koordinat dari peramban HP ke ThingSpeak...</div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="panel">
+    <!-- Pemilih Peserta Aktif (Jarots001 / Jarots002) -->
+    <div class="rider-selector-bar" id="riderSelectorBar"></div>
+
+    <!-- Kontrol Pemutar Ulang Rekaman (Replay) -->
+    <div id="replayBar">
+      <button id="btnPlayPause" class="replay-btn" onclick="togglePlayPause()">Jeda</button>
+      <input type="range" id="replaySlider" min="0" max="0" value="0" oninput="geserTimeline(this.value)" />
+      <span id="replayProgressText">Titik 0 / 0</span>
+      <select id="speedSelect" onchange="ubahKecepatanReplay()">
+        <option value="1000">1x</option>
+        <option value="400" selected>3x</option>
+        <option value="150">8x</option>
+      </select>
+      <button class="secondary" onclick="keluarModeReplay()">Kembali ke Live</button>
+    </div>
+
+    <div class="panel-top">
+      <div class="info-grid">
+        <div class="info-item">
+          <span>ID Peserta</span>
+          <strong id="pesertaIdText">Jarots001</strong>
+        </div>
+        <div class="info-item">
+          <span>Status</span>
+          <strong id="statusText">Menunggu GPS</strong>
+        </div>
+        <div class="info-item">
+          <span>Jarak Tempuh</span>
+          <strong id="jarakTempuhText">0.00 km</strong>
+        </div>
+        <div class="info-item">
+          <span>Durasi Rekam</span>
+          <strong id="durasiText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Baterai HP</span>
+          <strong id="bateraiText">-</strong>
+        </div>
+        <div class="info-item" id="deviasiBox" style="display:none;">
+          <span>Deviasi GPX</span>
+          <strong id="deviasiText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Koordinat</span>
+          <strong id="coordText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Waktu (WIB)</span>
+          <strong id="timeText">-</strong>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button id="btnBukaReplay" class="replay-btn" onclick="mulaiModeReplay()">Putar Ulang Rekaman</button>
+        <button onclick="fokusKePeserta()">Fokus Peserta</button>
+        <button class="secondary" onclick="lihatSemuaRute()">Lihat Semua Rute</button>
+      </div>
+    </div>
+
+    <!-- Panel Khusus Admin Panitia (?role=admin) -->
+    <div id="adminBar">
+      <div class="admin-controls">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label>Toleransi Jalur:</label>
+          <select id="batasSelect" onchange="renderSemuaPesertaKePeta()">
+            <option value="30">30 m</option>
+            <option value="50" selected>50 m</option>
+            <option value="100">100 m</option>
+            <option value="200">200 m</option>
+          </select>
+
+          <button id="btnAlarm" class="secondary" onclick="toggleAlarm()">Alarm: MATI</button>
+          <button class="download" onclick="downloadRekamanGPX()">Download .GPX</button>
+          <button class="secondary" onclick="downloadRekamanCSV()">Download .CSV</button>
+          <label style="cursor:pointer; background:#e2e8f0; padding:6px 10px; border-radius:6px; font-weight:500;">
+            Upload GPX <input type="file" accept=".gpx" style="display:none;" onchange="uploadGpxManual(event)" />
+          </label>
+        </div>
+        <div id="logStatus">Log Admin: Belum ada pelanggaran jalur.</div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>Konfigurasi 2 Channel ThingSpeak (Jarots001 &amp; Jarots002):</strong>
+        <button class="download" onclick="simpanKonfigurasiAdmin()">Simpan Perubahan Konfigurasi</button>
+      </div>
+      <div class="admin-riders-grid" id="adminRidersGrid"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const GPX_FILE = 'rute_purwokerto.gpx';
+
+    // Data Default 2 Peserta sesuai Tabel ThingSpeak
+    const DEFAULT_RIDERS = [
+      {
+        id: 'Jarots001',
+        label: 'Peserta 1',
+        color: '#2563eb', // Biru
+        ch: '3597209',
+        wk: 'JAMIUOSS2CQYYGDR',
+        rk: 'TZGZLU54K4Z2D3D9'
+      },
+      {
+        id: 'Jarots002',
+        label: 'Peserta 2',
+        color: '#16a34a', // Hijau
+        ch: '3597222',
+        wk: 'IH3LOSE15QPYHUZ9',
+        rk: 'BA5IHXO58H7X5E9D'
+      }
+    ];
+
+    let ridersConfig = JSON.parse(localStorage.getItem('jarots_2riders_cfg') || 'null') || DEFAULT_RIDERS;
+    let ridersRawPoints = { 0: [], 1: [] };
+    let selectedRider = 0;
+
+    const params    = new URLSearchParams(window.location.search);
+    const roleParam = params.get('role');
+    const isAdmin   = roleParam === 'admin';
+
+    if (isAdmin) {
+      document.getElementById('roleTag').textContent = 'Admin Panitia';
+      document.getElementById('adminBar').classList.add('tampil');
+      document.getElementById('deviasiBox').style.display = 'block';
+    }
+
+    // Inisialisasi Peta
+    const map = L.map('map').setView([-7.4325, 109.2515], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let gpxCoords = [];
+    let gpxCumDist = [];
+    let gpxLayer = null;
+
+    // Layer Peta untuk 2 Peserta
+    const riderMapObjects = ridersConfig.map(r => ({
+      marker: null,
+      snappedLine: L.polyline([], { color: r.color, weight: 5, opacity: 0.9 }).addTo(map),
+      offTrackLine: L.polyline([], { color: '#dc2626', weight: 4 }).addTo(map),
+      lastPos: null
+    }));
+
+    let pertamaKaliFokus = true;
+    let alarmAktif = false;
+
+    // State Mode Replay
+    let isReplayMode = false;
+    let isPlaying = false;
+    let replayIndex = 0;
+    let replayTimer = null;
+
+    // State Pengirim GPS HP
+    let watchId = null;
+    let sendTimer = null;
+    let simTimer = null;
+    let latestPhonePos = null;
+    let sentCounter = 0;
+    let currentPhoneBatt = 'N/A';
+
+    if ('getBattery' in navigator) {
+      navigator.getBattery().then(batt => {
+        const updateB = () => {
+          currentPhoneBatt = Math.round(batt.level * 100) + '%';
+          document.getElementById('phoneBattText').textContent = currentPhoneBatt;
+        };
+        updateB();
+        batt.addEventListener('levelchange', updateB);
+      });
+    } else {
+      document.getElementById('phoneBattText').textContent = 'N/A';
+    }
+
+    function togglePanelPeserta() {
+      document.getElementById('pesertaPanel').classList.toggle('tampil');
+      setTimeout(() => map.invalidateSize(), 200);
+    }
+
+    function jarakMeterAntarTitik(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const rad = Math.PI / 180;
+      const dLat = (lat2 - lat1) * rad;
+      const dLon = (lon2 - lon1) * rad * Math.cos(((lat1 + lat2) / 2) * rad);
+      return Math.sqrt(dLat * dLat + dLon * dLon) * R;
+    }
+
+    function formatDurasi(ms) {
+      if (ms <= 0) return '0 mnt';
+      const totalDetik = Math.floor(ms / 1000);
+      const jam = Math.floor(totalDetik / 3600);
+      const menit = Math.floor((totalDetik % 3600) / 60);
+      if (jam > 0) return `${jam} jam ${menit} mnt`;
+      return `${menit} mnt ${totalDetik % 60} dtk`;
+    }
+
+    function buatIconPeserta(r) {
+      return L.divIcon({
+        html: `<div style="background:${r.color}; color:#fff; padding:2px 8px; border-radius:999px; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.45); font-size:11px; font-weight:700; white-space:nowrap;">${r.id}</div>`,
+        className: '',
+        iconSize: [72, 22],
+        iconAnchor: [36, 11]
+      });
+    }
+
+    // --- PROYEKSI TITIK KE RUTE GPX (MAP SNAPPING) ---
+    function proyeksikanKeRute(lat, lon, rute, maxSegSaatIni, sudahMulai) {
+      const totalSeg = rute.length - 1;
+      if (totalSeg < 1) return { jarak: 0, titikTerdekat: [lat, lon], segIndex: 0 };
+
+      const R = 6371000;
+      const rad = Math.PI / 180;
+      const cosLat = Math.cos(lat * rad);
+      const batasAwal = sudahMulai ? Math.max(0, maxSegSaatIni) : 0;
+      let batasAkhir = totalSeg - 1;
+
+      if (sudahMulai) {
+        const jarakSaatIni = gpxCumDist[batasAwal] || 0;
+        batasAkhir = batasAwal;
+        while (batasAkhir < totalSeg - 1 && (gpxCumDist[batasAkhir + 1] - jarakSaatIni) <= 900) {
+          batasAkhir++;
+        }
+      }
+
+      let minJarak = Infinity;
+      let titikTerdekat = rute[batasAwal];
+      let bestSegIndex = batasAwal;
+
+      for (let i = batasAwal; i <= batasAkhir; i++) {
+        const [lat1, lon1] = rute[i];
+        const [lat2, lon2] = rute[i + 1];
+        const x1 = (lon1 - lon) * rad * R * cosLat;
+        const y1 = (lat1 - lat) * rad * R;
+        const x2 = (lon2 - lon) * rad * R * cosLat;
+        const y2 = (lat2 - lat) * rad * R;
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const lenSq = dx * dx + dy * dy;
+
+        let t = 0;
+        if (lenSq > 0) {
+          t = -(x1 * dx + y1 * dy) / lenSq;
+          t = Math.max(0, Math.min(1, t));
+        }
+
+        const xc = x1 + t * dx;
+        const yc = y1 + t * dy;
+        const d = Math.sqrt(xc * xc + yc * yc);
+
+        if (d < minJarak) {
+          minJarak = d;
+          titikTerdekat = [lat1 + t * (lat2 - lat1), lon1 + t * (lon2 - lon1)];
+          bestSegIndex = i;
+        }
+      }
+      return { jarak: minJarak, titikTerdekat, segIndex: bestSegIndex };
+    }
+
+    // --- MUAT FILE GPX ---
+    function prosesXmlGpx(xmlText) {
+      const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
+      const trkpts = xml.querySelectorAll('trkpt, rtept');
+      gpxCoords = [];
+      gpxCumDist = [];
+      let totalMeter = 0;
+
+      trkpts.forEach(pt => {
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+        if (!isNaN(lat) && !isNaN(lon)) {
+          if (gpxCoords.length > 0) {
+            const prev = gpxCoords[gpxCoords.length - 1];
+            totalMeter += jarakMeterAntarTitik(prev[0], prev[1], lat, lon);
+          }
+          gpxCoords.push([lat, lon]);
+          gpxCumDist.push(totalMeter);
+        }
+      });
+
+      if (gpxCoords.length > 0) {
+        if (gpxLayer) map.removeLayer(gpxLayer);
+        gpxLayer = L.polyline(gpxCoords, { color: '#64748b', weight: 5, opacity: 0.4, dashArray: '6, 6' }).addTo(map);
+        L.circleMarker(gpxCoords[0], {
+          radius: 7, color: '#15803d', fillColor: '#22c55e', fillOpacity: 1
+        }).addTo(map).bindPopup('<b>START</b>');
+        map.fitBounds(gpxLayer.getBounds(), { padding: [30, 30] });
+      }
+    }
+
+    async function muatRuteGPX() {
+      try {
+        const res = await fetch(GPX_FILE + '?v=' + Date.now());
+        if (!res.ok) throw new Error('File GPX belum ada di repo');
+        const xmlText = await res.text();
+        prosesXmlGpx(xmlText);
+      } catch (err) {
+        const fallbackGpx = `<gpx><trk><trkseg>
+          <trkpt lat="-7.4348" lon="109.2485"></trkpt>
+          <trkpt lat="-7.4295" lon="109.2492"></trkpt>
+          <trkpt lat="-7.4230" lon="109.2505"></trkpt>
+          <trkpt lat="-7.4165" lon="109.2512"></trkpt>
+          <trkpt lat="-7.4112" lon="109.2460"></trkpt>
+          <trkpt lat="-7.4105" lon="109.2385"></trkpt>
+          <trkpt lat="-7.4148" lon="109.2320"></trkpt>
+          <trkpt lat="-7.4215" lon="109.2308"></trkpt>
+          <trkpt lat="-7.4275" lon="109.2325"></trkpt>
+          <trkpt lat="-7.4320" lon="109.2380"></trkpt>
+          <trkpt lat="-7.4348" lon="109.2485"></trkpt>
+        </trkseg></trk></gpx>`;
+        prosesXmlGpx(fallbackGpx);
+      }
+    }
+
+    function uploadGpxManual(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        prosesXmlGpx(e.target.result);
+        renderSemuaPesertaKePeta();
+      };
+      reader.readAsText(file);
+    }
+
+    // --- RENDER KEDUA PESERTA KE PETA ---
+    function renderRiderPills() {
+      const bar = document.getElementById('riderSelectorBar');
+      bar.innerHTML = ridersConfig.map((r, idx) => {
+        const pts = ridersRawPoints[idx] || [];
+        const aktifTag = pts.length > 0 ? ` (${pts.length} titik)` : '';
+        return `<button class="rider-pill ${selectedRider === idx ? 'selected' : ''}" onclick="pilihPeserta(${idx})">
+          <span class="rider-dot" style="background:${r.color};"></span>
+          <span>${r.id}${aktifTag}</span>
+        </button>`;
+      }).join('');
+    }
+
+    function pilihPeserta(idx) {
+      if (isReplayMode) keluarModeReplay();
+      selectedRider = idx;
+      renderSemuaPesertaKePeta();
+      const pos = riderMapObjects[idx].lastPos;
+      if (pos) map.setView(pos, 16);
+    }
+
+    function renderSemuaPesertaKePeta() {
+      renderRiderPills();
+      const batasMeter = parseFloat(document.getElementById('batasSelect').value);
+
+      for (let idx = 0; idx < 2; idx++) {
+        const cfg = ridersConfig[idx];
+        const mapObj = riderMapObjects[idx];
+        let rawPoints = ridersRawPoints[idx] || [];
+
+        if (isReplayMode && idx === selectedRider) {
+          rawPoints = rawPoints.slice(0, replayIndex + 1);
+        }
+
+        if (rawPoints.length === 0) {
+          if (idx === selectedRider) updatePanelInfoKosong(cfg);
+          continue;
+        }
+
+        let startSegIndex = null;
+        let maxSegIndex = 0;
+        let lastSnappedPoint = null;
+        let offTrackSegments = [];
+        let sedangOffTrack = false;
+        let hasilTerakhir = null;
+        let totalJarakMeter = 0;
+
+        rawPoints.forEach((pt, pIdx) => {
+          if (pIdx > 0) {
+            totalJarakMeter += jarakMeterAntarTitik(rawPoints[pIdx - 1].lat, rawPoints[pIdx - 1].lng, pt.lat, pt.lng);
+          }
+          if (gpxCoords.length > 1) {
+            const sudahMulai = (startSegIndex !== null);
+            const cek = proyeksikanKeRute(pt.lat, pt.lng, gpxCoords, maxSegIndex, sudahMulai);
+            if (cek.jarak <= batasMeter) {
+              if (!sudahMulai) {
+                startSegIndex = cek.segIndex;
+                maxSegIndex = cek.segIndex;
+                lastSnappedPoint = cek.titikTerdekat;
+              } else if (cek.segIndex >= maxSegIndex) {
+                maxSegIndex = cek.segIndex;
+                lastSnappedPoint = cek.titikTerdekat;
+              }
+              sedangOffTrack = false;
+            } else {
+              if (!sedangOffTrack) {
+                offTrackSegments.push([[pt.lat, pt.lng]]);
+                sedangOffTrack = true;
+              } else {
+                offTrackSegments[offTrackSegments.length - 1].push([pt.lat, pt.lng]);
+              }
+            }
+            if (pIdx === rawPoints.length - 1) hasilTerakhir = cek;
+          }
+        });
+
+        if (startSegIndex !== null && maxSegIndex > startSegIndex && gpxCumDist.length > maxSegIndex) {
+          totalJarakMeter = gpxCumDist[maxSegIndex] - gpxCumDist[startSegIndex];
+        }
+
+        const jejakRapiGPX = [];
+        if (gpxCoords.length > 1 && startSegIndex !== null && lastSnappedPoint) {
+          for (let i = startSegIndex; i <= maxSegIndex; i++) jejakRapiGPX.push(gpxCoords[i]);
+          jejakRapiGPX.push(lastSnappedPoint);
+        }
+
+        const terbaru = rawPoints[rawPoints.length - 1];
+        const jarakMeter = hasilTerakhir ? Math.round(hasilTerakhir.jarak) : 0;
+        const keluarJalur = (gpxCoords.length > 1 && jarakMeter > batasMeter);
+        const posisiMarker = (!keluarJalur && lastSnappedPoint) ? lastSnappedPoint : [terbaru.lat, terbaru.lng];
+        mapObj.lastPos = posisiMarker;
+
+        mapObj.snappedLine.setLatLngs(jejakRapiGPX);
+        mapObj.offTrackLine.setLatLngs(offTrackSegments);
+
+        const waktuWIB = new Date(terbaru.time).toLocaleString('id-ID', {
+          timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit'
+        }) + ' WIB';
+
+        const popupHtml = `<b>${cfg.id} (${cfg.label})</b><br>Status: ${keluarJalur ? 'Keluar Jalur (' + jarakMeter + 'm)' : 'Sesuai Rute GPX'}<br>Baterai HP: ${terbaru.batt || '-'}<br>Waktu: ${waktuWIB}`;
+
+        if (mapObj.marker) {
+          mapObj.marker.setLatLng(posisiMarker);
+          mapObj.marker.setPopupContent(popupHtml);
+        } else {
+          mapObj.marker = L.marker(posisiMarker, { icon: buatIconPeserta(cfg) })
+            .addTo(map)
+            .bindPopup(popupHtml)
+            .on('click', () => pilihPeserta(idx));
+        }
+
+        if (idx === selectedRider) {
+          const durasiMs = new Date(terbaru.time).getTime() - new Date(rawPoints[0].time).getTime();
+          document.getElementById('pesertaIdText').textContent = `${cfg.id} (${cfg.label})`;
+          document.getElementById('jarakTempuhText').textContent = `${(totalJarakMeter / 1000).toFixed(2)} km`;
+          document.getElementById('durasiText').textContent = formatDurasi(durasiMs);
+          document.getElementById('bateraiText').textContent = terbaru.batt || '-';
+          document.getElementById('deviasiText').textContent = `${jarakMeter} meter`;
+          document.getElementById('coordText').textContent = `${terbaru.lat.toFixed(6)}, ${terbaru.lng.toFixed(6)}`;
+          document.getElementById('timeText').textContent = waktuWIB;
+
+          const badge = document.getElementById('statusBadge');
+          const banner = document.getElementById('alertBanner');
+
+          if (isReplayMode) {
+            badge.textContent = `Replay: ${cfg.id}`;
+            badge.className = 'badge replay';
+            document.getElementById('statusText').textContent = keluarJalur ? 'Keluar Jalur' : 'Sesuai Rute GPX';
+            banner.classList.remove('tampil');
+          } else if (keluarJalur) {
+            document.getElementById('statusText').textContent = 'Keluar Jalur';
+            if (isAdmin) {
+              badge.textContent = `KELUAR JALUR (${jarakMeter}m)`;
+              badge.className = 'badge bahaya';
+              banner.classList.add('tampil');
+              document.getElementById('alertText').textContent =
+                `PERINGATAN ADMIN: ${cfg.id} keluar jalur sejauh ${jarakMeter} meter (batas ${batasMeter}m)!`;
+              document.getElementById('logStatus').textContent =
+                `[${cfg.id}] Keluar jalur pukul ${waktuWIB} (${jarakMeter}m dari rute).`;
+              bunyikanBeep();
+            } else {
+              badge.textContent = 'Live Aktif (2 Peserta)';
+              badge.className = 'badge aktif';
+            }
+          } else {
+            document.getElementById('statusText').textContent = 'Sesuai Rute GPX';
+            badge.textContent = isAdmin ? 'Dalam Jalur (Aman)' : 'Live Aktif (2 Peserta)';
+            badge.className = 'badge aktif';
+            banner.classList.remove('tampil');
+          }
+
+          if (pertamaKaliFokus) {
+            map.setView(posisiMarker, 16);
+            pertamaKaliFokus = false;
+          }
+        }
+      }
+    }
+
+    function updatePanelInfoKosong(cfg) {
+      document.getElementById('pesertaIdText').textContent = `${cfg.id} (${cfg.label})`;
+      document.getElementById('statusText').textContent = 'Menunggu GPS';
+      document.getElementById('jarakTempuhText').textContent = '0.00 km';
+      document.getElementById('durasiText').textContent = '-';
+      document.getElementById('bateraiText').textContent = '-';
+      document.getElementById('deviasiText').textContent = '-';
+      document.getElementById('coordText').textContent = '-';
+      document.getElementById('timeText').textContent = '-';
+      const badge = document.getElementById('statusBadge');
+      badge.textContent = `Menunggu ${cfg.id} (Ch #${cfg.ch})...`;
+      badge.className = 'badge';
+    }
+
+    // --- KONTROL PENGIRIMAN GPS HP PESERTA (HTML5 GEOLOCATION) ---
+    function logSender(teks) {
+      const jam = new Date().toLocaleTimeString('id-ID');
+      document.getElementById('senderLog').textContent = `[${jam}] ${teks}`;
+    }
+
+    function gantiSlotPengirim() {
+      const idx = parseInt(document.getElementById('senderSlotSelect').value, 10);
+      selectedRider = idx;
+      renderSemuaPesertaKePeta();
+    }
+
+    function mulaiKirimGpsHp() {
+      if (!('geolocation' in navigator)) {
+        alert('Browser HP tidak mendukung HTML5 Geolocation API.');
+        return;
+      }
+      hentikanGpsHp();
+      document.getElementById('btnStartGps').disabled = true;
+      document.getElementById('btnStopGps').disabled = false;
+      document.getElementById('gpsPermText').textContent = 'Meminta Izin...';
+
+      watchId = navigator.geolocation.watchPosition(
+        pos => {
+          document.getElementById('gpsPermText').textContent = 'Aktif (Diizinkan)';
+          document.getElementById('gpsAccText').textContent = `± ${Math.round(pos.coords.accuracy)} m`;
+          latestPhonePos = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            speed: pos.coords.speed ? (pos.coords.speed * 3.6).toFixed(1) : '0.0'
+          };
+        },
+        err => {
+          document.getElementById('gpsPermText').textContent = 'Ditolak / Error';
+          logSender('Error GPS: ' + err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+      );
+
+      const intervalMs = parseInt(document.getElementById('senderIntervalSelect').value, 10);
+      sendTimer = setInterval(() => {
+        if (latestPhonePos) {
+          const idx = parseInt(document.getElementById('senderSlotSelect').value, 10);
+          kirimKoordinatPeserta(idx, latestPhonePos.lat, latestPhonePos.lng, latestPhonePos.speed, true);
+        }
+      }, intervalMs);
+      logSender('Pelacakan GPS HP dimulai...');
+    }
+
+    function mulaiSimulasi2Peserta() {
+      hentikanGpsHp();
+      document.getElementById('btnStopGps').disabled = false;
+      document.getElementById('gpsPermText').textContent = 'Simulasi 2 Peserta';
+      document.getElementById('gpsAccText').textContent = '± 1.5 m (Simulasi)';
+
+      let stepIdx = [0, 4];
+      const jalankan = () => {
+        for (let i = 0; i < 2; i++) {
+          const pt = gpxCoords[stepIdx[i] % gpxCoords.length];
+          if (pt) {
+            kirimKoordinatPeserta(i, pt[0], pt[1], (25 + i * 3).toFixed(1), false);
+            stepIdx[i] = (stepIdx[i] + 1) % gpxCoords.length;
+          }
+        }
+      };
+      jalankan();
+      simTimer = setInterval(jalankan, 3000);
+      logSender('Simulasi Jarots001 & Jarots002 bergerak bersamaan di rute GPX aktif!');
+    }
+
+    function hentikanGpsHp() {
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      if (sendTimer !== null) { clearInterval(sendTimer); sendTimer = null; }
+      if (simTimer !== null) { clearInterval(simTimer); simTimer = null; }
+      document.getElementById('btnStartGps').disabled = false;
+      document.getElementById('btnStopGps').disabled = true;
+    }
+
+    async function kirimKoordinatPeserta(idx, lat, lng, speed, kirimKeCloud) {
+      const cfg = ridersConfig[idx];
+      const titikBaru = {
+        lat, lng, speed,
+        batt: currentPhoneBatt,
+        time: new Date().toISOString()
+      };
+
+      ridersRawPoints[idx].push(titikBaru);
+      sentCounter++;
+      document.getElementById('sentCountText').textContent = `${sentCounter} paket`;
+      renderSemuaPesertaKePeta();
+
+      if (kirimKeCloud && cfg.wk) {
+        const battNum = parseInt(currentPhoneBatt, 10) || 100;
+        const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(cfg.wk)}&field1=${lat}&field2=${lng}&field3=${speed}&field4=${battNum}&lat=${lat}&long=${lng}`;
+        try {
+          const res = await fetch(url);
+          const entry = await res.text();
+          if (entry && entry !== '0') {
+            logSender(`[${cfg.id}] Terkirim ke ThingSpeak #${cfg.ch} (Entry #${entry})`);
+          } else {
+            logSender(`[${cfg.id}] Menunggu jeda 15 detik ThingSpeak...`);
+          }
+        } catch (e) {
+          logSender(`[${cfg.id}] Gagal kirim ke ThingSpeak (cek internet HP).`);
+        }
+      } else {
+        logSender(`[${cfg.id}] Posisi lokal diperbarui: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      }
+    }
+
+    // --- REPLAY MODE ---
+    function mulaiModeReplay() {
+      const pts = ridersRawPoints[selectedRider] || [];
+      if (pts.length < 2) {
+        alert('Minimal butuh 2 titik koordinat terekam untuk memutar ulang perjalanan peserta ini.');
+        return;
+      }
+      isReplayMode = true;
+      isPlaying = true;
+      replayIndex = 0;
+
+      const slider = document.getElementById('replaySlider');
+      slider.max = pts.length - 1;
+      slider.value = 0;
+
+      document.getElementById('replayBar').classList.add('tampil');
+      document.getElementById('btnBukaReplay').style.display = 'none';
+      document.getElementById('btnPlayPause').textContent = 'Jeda';
+
+      jalankanLangkahReplay();
+      aturTimerReplay();
+    }
+
+    function aturTimerReplay() {
+      if (replayTimer) clearInterval(replayTimer);
+      const jedaMs = parseInt(document.getElementById('speedSelect').value, 10);
+      replayTimer = setInterval(() => {
+        const pts = ridersRawPoints[selectedRider] || [];
+        if (!isReplayMode || !isPlaying) return;
+        if (replayIndex < pts.length - 1) {
+          replayIndex++;
+          jalankanLangkahReplay();
+        } else {
+          isPlaying = false;
+          document.getElementById('btnPlayPause').textContent = 'Putar Ulang';
+        }
+      }, jedaMs);
+    }
+
+    function jalankanLangkahReplay() {
+      const pts = ridersRawPoints[selectedRider] || [];
+      document.getElementById('replaySlider').value = replayIndex;
+      document.getElementById('replayProgressText').textContent = `Titik ${replayIndex + 1} / ${pts.length}`;
+      renderSemuaPesertaKePeta();
+    }
+
+    function togglePlayPause() {
+      const pts = ridersRawPoints[selectedRider] || [];
+      if (replayIndex >= pts.length - 1) {
+        replayIndex = 0;
+        isPlaying = true;
+        document.getElementById('btnPlayPause').textContent = 'Jeda';
+        jalankanLangkahReplay();
+        return;
+      }
+      isPlaying = !isPlaying;
+      document.getElementById('btnPlayPause').textContent = isPlaying ? 'Jeda' : 'Lanjut';
+    }
+
+    function geserTimeline(val) {
+      isPlaying = false;
+      document.getElementById('btnPlayPause').textContent = 'Lanjut';
+      replayIndex = parseInt(val, 10);
+      jalankanLangkahReplay();
+    }
+
+    function ubahKecepatanReplay() { if (isReplayMode) aturTimerReplay(); }
+
+    function keluarModeReplay() {
+      isReplayMode = false;
+      isPlaying = false;
+      if (replayTimer) clearInterval(replayTimer);
+      document.getElementById('replayBar').classList.remove('tampil');
+      document.getElementById('btnBukaReplay').style.display = 'inline-block';
+      renderSemuaPesertaKePeta();
+    }
+
+    // --- ADMIN PANEL & EKSPOR GPX / CSV ---
+    function renderAdminRidersGrid() {
+      const grid = document.getElementById('adminRidersGrid');
+      grid.innerHTML = ridersConfig.map((r, idx) => `
+        <div class="admin-rider-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong><span class="rider-dot" style="background:${r.color}; margin-right:5px;"></span>${r.label} (${r.id})</strong>
+            <button class="replay-btn" style="padding:3px 8px; font-size:11px;" onclick="salinLinkHpPeserta(${idx})">Salin Link HP</button>
+          </div>
+          <input type="text" id="admId_${idx}" value="${r.id}" placeholder="ID Peserta" />
+          <input type="text" id="admCh_${idx}" value="${r.ch}" placeholder="Channel ID ThingSpeak" />
+          <input type="text" id="admWk_${idx}" value="${r.wk}" placeholder="Write API Key" />
+          <input type="text" id="admRk_${idx}" value="${r.rk}" placeholder="Read API Key" />
+        </div>
+      `).join('');
+    }
+
+    function simpanKonfigurasiAdmin() {
+      ridersConfig = ridersConfig.map((r, idx) => ({
+        ...r,
+        id: document.getElementById(`admId_${idx}`).value.trim() || r.id,
+        ch: document.getElementById(`admCh_${idx}`).value.trim(),
+        wk: document.getElementById(`admWk_${idx}`).value.trim(),
+        rk: document.getElementById(`admRk_${idx}`).value.trim()
+      }));
+      localStorage.setItem('jarots_2riders_cfg', JSON.stringify(ridersConfig));
+      perbaruiDropdownPengirim();
+      ambilSemuaDataThingSpeak();
+      alert('Konfigurasi 2 Channel ThingSpeak berhasil disimpan!');
+    }
+
+    function perbaruiDropdownPengirim() {
+      const sel = document.getElementById('senderSlotSelect');
+      ridersConfig.forEach((r, idx) => {
+        sel.options[idx].text = `${r.id} — Channel #${r.ch}`;
+      });
+    }
+
+    function salinLinkHpPeserta(idx) {
+      simpanKonfigurasiAdmin();
+      const r = ridersConfig[idx];
+      const q = new URLSearchParams({
+        role: 'peserta', p: idx, id: r.id, ch: r.ch, wk: r.wk, rk: r.rk
+      });
+      const link = `${window.location.origin}${window.location.pathname}?${q.toString()}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert(`Link khusus HP ${r.id} berhasil disalin!\nKirimkan link ini ke WA peserta:\n\n${link}`);
+      });
+    }
+
+    function downloadFile(isi, namaFile, tipeMime) {
+      const blob = new Blob([isi], { type: tipeMime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = namaFile;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadRekamanGPX() {
+      const cfg = ridersConfig[selectedRider];
+      const pts = ridersRawPoints[selectedRider] || [];
+      if (pts.length === 0) return;
+      const tgl = new Date().toISOString().slice(0, 10);
+      let gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="JarotsCompanyUltraCycling" xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>Rekaman_${cfg.id}_${tgl}</name></metadata>\n  <trk><name>${cfg.id}</name><trkseg>\n`;
+      pts.forEach(pt => { gpx += `    <trkpt lat="${pt.lat.toFixed(6)}" lon="${pt.lng.toFixed(6)}"><time>${pt.time}</time></trkpt>\n`; });
+      gpx += `  </trkseg></trk>\n</gpx>`;
+      downloadFile(gpx, `Rekaman_${cfg.id}_${tgl}.gpx`, 'application/gpx+xml');
+    }
+
+    function downloadRekamanCSV() {
+      const cfg = ridersConfig[selectedRider];
+      const pts = ridersRawPoints[selectedRider] || [];
+      if (pts.length === 0) return;
+      const tgl = new Date().toISOString().slice(0, 10);
+      let csv = `No,ID_Peserta,Waktu_WIB,Latitude,Longitude,Baterai_HP\n`;
+      pts.forEach((pt, i) => {
+        const wib = new Date(pt.time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }).replace(',', '');
+        csv += `${i + 1},${cfg.id},"${wib}",${pt.lat.toFixed(6)},${pt.lng.toFixed(6)},${pt.batt || '-'}\n`;
+      });
+      downloadFile(csv, `Rekaman_${cfg.id}_${tgl}.csv`, 'text/csv;charset=utf-8;');
+    }
+
+    function bunyikanBeep() {
+      if (!isAdmin || !alarmAktif || isReplayMode) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    function toggleAlarm() {
+      alarmAktif = !alarmAktif;
+      const btn = document.getElementById('btnAlarm');
+      btn.textContent = alarmAktif ? 'Alarm: AKTIF' : 'Alarm: MATI';
+      btn.className = alarmAktif ? 'alarm-on' : 'secondary';
+      if (alarmAktif) bunyikanBeep();
+    }
+
+    // --- AMBIL DATA DARI 2 CHANNEL THINGSPEAK ---
+    async function ambilSemuaDataThingSpeak() {
+      if (isReplayMode) return;
+      for (let idx = 0; idx < 2; idx++) {
+        const cfg = ridersConfig[idx];
+        if (!cfg.ch) continue;
+        const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=1000${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          const feeds = data.feeds || [];
+          const pts = [];
+          feeds.forEach(f => {
+            const lat = parseFloat(f.field1);
+            const lng = parseFloat(f.field2);
+            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+              pts.push({
+                lat, lng,
+                speed: f.field3 || '0.0',
+                batt: f.field4 ? f.field4 + '%' : '-',
+                time: f.created_at
+              });
+            }
+          });
+          if (pts.length > 0) ridersRawPoints[idx] = pts;
+        } catch (err) {
+          console.error(`Gagal memuat data ${cfg.id}:`, err);
+        }
+      }
+      renderSemuaPesertaKePeta();
+    }
+
+    function fokusKePeserta() {
+      const pos = riderMapObjects[selectedRider].lastPos;
+      if (pos) map.setView(pos, 16);
+    }
+
+    function lihatSemuaRute() {
+      if (gpxLayer) map.fitBounds(gpxLayer.getBounds(), { padding: [30, 30] });
+    }
+
+    async function mulaiAplikasi() {
+      if (roleParam === 'peserta') {
+        document.getElementById('pesertaPanel').classList.add('tampil');
+        document.getElementById('roleTag').textContent = 'HP Peserta (GPS Sender)';
+        if (params.has('p')) {
+          const pIdx = parseInt(params.get('p'), 10);
+          if (pIdx >= 0 && pIdx < 2) {
+            if (params.get('id')) ridersConfig[pIdx].id = params.get('id');
+            if (params.get('ch')) ridersConfig[pIdx].ch = params.get('ch');
+            if (params.get('wk')) ridersConfig[pIdx].wk = params.get('wk');
+            if (params.get('rk')) ridersConfig[pIdx].rk = params.get('rk');
+            localStorage.setItem('jarots_2riders_cfg', JSON.stringify(ridersConfig));
+            document.getElementById('senderSlotSelect').value = pIdx;
+            selectedRider = pIdx;
+          }
+        }
+      }
+
+      renderAdminRidersGrid();
+      perbaruiDropdownPengirim();
+      await muatRuteGPX();
+      await ambilSemuaDataThingSpeak();
+      setInterval(ambilSemuaDataThingSpeak, 10000);
+    }
+
+    mulaiAplikasi();
+  </script>
+</body>
+</html>
