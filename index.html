@@ -27,32 +27,6 @@
     .badge.bahaya { background: #dc2626; color: #ffffff; animation: kedip 0.9s infinite; }
     @keyframes kedip { 50% { opacity: 0.55; } }
 
-    /* Navigasi Tab Utama (Hanya untuk Penonton & Panitia) */
-    .main-tabs {
-      display: flex; background: #1e293b; padding: 0 16px; gap: 6px;
-      border-bottom: 1px solid #334155;
-    }
-    .main-tab-btn {
-      background: transparent; color: #cbd5e1; border: none;
-      padding: 9px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
-      border-bottom: 3px solid transparent; border-radius: 0;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .main-tab-btn.active {
-      color: #ffffff; border-bottom-color: #38bdf8; background: rgba(255,255,255,0.06);
-    }
-    .main-tab-btn.has-sos {
-      background: #991b1b; color: #ffffff; border-bottom-color: #fecaca;
-      animation: kedip 1s infinite;
-    }
-    .tab-count {
-      background: #475569; color: #ffffff; font-size: 11px;
-      padding: 1px 7px; border-radius: 999px; font-weight: 700;
-    }
-    .main-tab-btn.has-sos .tab-count {
-      background: #ffffff; color: #991b1b;
-    }
-
     /* Banner Darurat SOS */
     #sosBanner {
       display: none; background: #991b1b; color: #ffffff;
@@ -70,56 +44,9 @@
     }
     #alertBanner.tampil { display: flex; }
 
-    /* Container Tab Peta & Tab Daftar SOS */
+    /* Container Utama */
     #mapViewContainer {
       display: flex; flex-direction: column; flex: 1; min-height: 0;
-    }
-    #sosViewContainer {
-      display: none; flex-direction: column; flex: 1; overflow-y: auto;
-      padding: 16px; gap: 16px; background: #f1f5f9;
-    }
-    .sos-section {
-      background: #ffffff; border-radius: 10px; padding: 14px 16px;
-      border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 10px;
-    }
-    .sos-section-header {
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;
-    }
-    .sos-section-header h2 { font-size: 15px; color: #0f172a; }
-    .sos-cards-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 10px;
-    }
-    .sos-active-card {
-      background: #fef2f2; border: 2px solid #dc2626; border-radius: 10px;
-      padding: 12px; display: flex; flex-direction: column; gap: 8px;
-    }
-    .sos-active-top {
-      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
-    }
-    .sos-badge-live {
-      background: #dc2626; color: #ffffff; font-size: 10px; font-weight: 800;
-      padding: 3px 8px; border-radius: 999px; animation: kedip 0.9s infinite;
-    }
-    .sos-reason-box {
-      background: #ffffff; border: 1px solid #fecaca; border-radius: 6px;
-      padding: 7px 10px; font-size: 13px; font-weight: 700; color: #991b1b;
-    }
-    .sos-meta {
-      font-size: 11px; color: #475569; display: flex; flex-wrap: wrap; gap: 10px;
-    }
-    .sos-history-table {
-      width: 100%; border-collapse: collapse; font-size: 12px;
-    }
-    .sos-history-table th, .sos-history-table td {
-      text-align: left; padding: 8px 10px; border-bottom: 1px solid #e2e8f0;
-    }
-    .sos-history-table th {
-      background: #f8fafc; color: #475569; font-size: 11px; text-transform: uppercase;
-    }
-    .empty-sos-box {
-      padding: 18px; text-align: center; color: #475569; font-size: 13px;
-      background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;
     }
 
     /* Modal Popup (Registrasi & Input Kendala SOS) */
@@ -223,7 +150,7 @@
     button.replay-btn { background: #2563eb; color: #ffffff; font-weight: 600; }
     button.download { background: #15803d; color: #ffffff; font-weight: 600; }
     button.warn-btn { background: #d97706; color: #ffffff; font-weight: 600; }
-    button.alarm-on { background: #b91c1c; color: #ffffff; }
+    button.alarm-on { background: #b91c1c; color: #ffffff; font-weight: 600; }
     input[type="text"] {
       border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 500;
     }
@@ -317,19 +244,10 @@
     </div>
   </header>
 
-  <!-- TAB UTAMA: HANYA UNTUK PENONTON & ADMIN PANITIA -->
-  <nav id="mainTabsNav" class="main-tabs">
-    <button id="tabBtnMap" class="main-tab-btn active" onclick="gantiTabUtama('map')">Peta Live Tracking</button>
-    <button id="tabBtnSos" class="main-tab-btn" onclick="gantiTabUtama('sos')">
-      Daftar Darurat SOS <span id="sosTabCount" class="tab-count">0</span>
-    </button>
-  </nav>
-
   <!-- BANNER DARURAT SOS (HANYA UNTUK PENONTON & ADMIN PANITIA) -->
   <div id="sosBanner">
     <span id="sosBannerText">DARURAT SOS: Peserta membutuhkan bantuan segera!</span>
     <div class="btn-group">
-      <button class="download" onclick="gantiTabUtama('sos')">Buka Daftar SOS</button>
       <button id="btnMuteSos" class="warn-btn" style="display:none;" onclick="bisukanSuaraSos()">Bisukan Suara</button>
       <button class="secondary" onclick="fokusKePesertaSos()">Fokus Lokasi</button>
       <a id="sosGmapsLink" href="#" target="_blank" style="background:#ffffff; color:#991b1b; padding:6px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:700;">Google Maps</a>
@@ -342,7 +260,7 @@
     <button class="secondary" onclick="fokusKePeserta()">Lihat Posisi</button>
   </div>
 
-  <!-- TAB 1: HALAMAN PETA LIVE & KONTROL -->
+  <!-- HALAMAN UTAMA PETA LIVE & KONTROL -->
   <div id="mapViewContainer">
     <!-- PANEL KHUSUS HP PESERTA (Hanya tampil jika ?role=peserta) -->
     <div id="pesertaPanel">
@@ -476,6 +394,7 @@
             <label style="cursor:pointer; background:#e2e8f0; padding:6px 10px; border-radius:6px; font-weight:500;">
               Upload GPX <input type="file" accept=".gpx" style="display:none;" onchange="uploadGpxManual(event)" />
             </label>
+            <button class="alarm-on" onclick="resetTotalSemuaData()">Reset Total Semua Data</button>
           </div>
           <div id="logStatus">Log Admin: Belum ada pelanggaran jalur atau SOS.</div>
         </div>
@@ -489,34 +408,9 @@
     </div>
   </div>
 
-  <!-- TAB 2: HALAMAN DAFTAR DARURAT SOS (HANYA UNTUK PENONTON & PANITIA) -->
-  <div id="sosViewContainer">
-    <div class="sos-section">
-      <div class="sos-section-header">
-        <h2>Sinyal Darurat SOS Aktif Saat Ini (<span id="sosActiveHeadingCount">0</span> Peserta)</h2>
-        <div class="btn-group">
-          <button class="secondary" onclick="ambilSemuaDataThingSpeak()">Refresh Data</button>
-          <button class="replay-btn" onclick="gantiTabUtama('map')">Kembali ke Peta</button>
-        </div>
-      </div>
-      <div id="sosActiveCardsContainer">
-        <div class="empty-sos-box">Tidak ada sinyal SOS aktif saat ini. Semua peserta dalam kondisi normal.</div>
-      </div>
-    </div>
-
-    <div class="sos-section">
-      <div class="sos-section-header">
-        <h2>Riwayat Kejadian SOS Terekam (Semua Peserta)</h2>
-      </div>
-      <div style="overflow-x:auto;" id="sosHistoryContainer">
-        <div class="empty-sos-box">Belum ada riwayat sinyal SOS masuk pada sesi ini.</div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const GPX_FILE = 'JarotRoute1.gpx';
+    const GPX_FILE = 'Jarot Route1.gpx';
 
     const DEFAULT_RIDERS = [
       { id: 'Jarots001', bib: '001', fullName: 'Peserta 1', color: '#2563eb', ch: '3597209', wk: 'JAMIUOSS2CQYYGDR', rk: 'TZGZLU54K4Z2D3D9', sos: false, sosReason: '' },
@@ -525,24 +419,24 @@
       { id: 'Jarots004', bib: '004', fullName: 'Peserta 4', color: '#ea580c', ch: '3597330', wk: '30DP5UD6HY8CZGQV', rk: 'CMW5G0CYIHIFMFP5', sos: false, sosReason: '' }
     ];
 
-    const rawSavedCfg = JSON.parse(
-      localStorage.getItem('jarots_4riders_cfg_v5') ||
-      localStorage.getItem('jarots_4riders_cfg_v4') ||
-      'null'
-    );
+    const rawSavedCfg = JSON.parse(localStorage.getItem('jarots_4riders_cfg_v6') || 'null');
 
-    let ridersConfig = (rawSavedCfg || DEFAULT_RIDERS).map((r, idx) => ({
-      ...DEFAULT_RIDERS[idx],
-      ...r,
-      sos: false,
-      sosReason: ''
-    }));
+    let ridersConfig = DEFAULT_RIDERS.map((def, idx) => {
+      const saved = rawSavedCfg && rawSavedCfg[idx] ? rawSavedCfg[idx] : {};
+      return {
+        ...def,
+        ch: saved.ch || def.ch,
+        wk: saved.wk || def.wk,
+        rk: saved.rk || def.rk,
+        sos: false,
+        sosReason: ''
+      };
+    });
 
     let ridersRawPoints = { 0: [], 1: [], 2: [], 3: [] };
     let selectedRider = 0;
     let activeSenderSlot = 0;
     let latestSosRiderIdx = null;
-    let activeTab = 'map';
     let isFetchingCloud = false;
 
     const params    = new URLSearchParams(window.location.search);
@@ -557,7 +451,6 @@
       document.getElementById('btnMuteSos').style.display = 'inline-block';
     } else if (isPeserta) {
       document.getElementById('roleTag').textContent = 'HP Peserta (GPS)';
-      document.getElementById('mainTabsNav').style.display = 'none';
       document.getElementById('bottomInfoPanel').style.display = 'none';
     } else {
       document.getElementById('roleTag').textContent = 'Penonton';
@@ -569,7 +462,7 @@
       }[m]));
     }
 
-    // --- KODE SOS PADA FIELD 3 (AGAR TERBACA DI SEMUA CHANNEL THINGSPEAK) ---
+    // --- KODE SOS PADA FIELD 3 ---
     function kodeAlasanSos(alasan) {
       const a = (alasan || '').toLowerCase();
       if (a.includes('ban bocor') || a.includes('kerusakan sepeda')) return '-901';
@@ -586,39 +479,6 @@
       if (kode === -903) return 'Cedera fisik / kram';
       if (kode === -904) return 'Kelelahan / butuh evakuasi';
       return 'Darurat SOS (Butuh Bantuan)';
-    }
-
-    // --- PERPINDAHAN TAB UTAMA (PENONTON & PANITIA) ---
-    function gantiTabUtama(tabName) {
-      if (isPeserta) return;
-      activeTab = tabName;
-      const mapView = document.getElementById('mapViewContainer');
-      const sosView = document.getElementById('sosViewContainer');
-      const btnMap  = document.getElementById('tabBtnMap');
-      const btnSos  = document.getElementById('tabBtnSos');
-
-      if (tabName === 'sos') {
-        mapView.style.display = 'none';
-        sosView.style.display = 'flex';
-        btnMap.classList.remove('active');
-        btnSos.classList.add('active');
-      } else {
-        sosView.style.display = 'none';
-        mapView.style.display = 'flex';
-        btnSos.classList.remove('active');
-        btnMap.classList.add('active');
-        setTimeout(() => map.invalidateSize(), 150);
-      }
-    }
-
-    function lihatSosDiPeta(idx) {
-      gantiTabUtama('map');
-      pilihPeserta(idx);
-      setTimeout(() => {
-        if (riderMapObjects[idx] && riderMapObjects[idx].marker) {
-          riderMapObjects[idx].marker.openPopup();
-        }
-      }, 220);
     }
 
     // --- SISTEM AUDIO & SIRINE ADMIN PANITIA ---
@@ -880,11 +740,14 @@
       activeSenderSlot = slotIdx;
       selectedRider = slotIdx;
       localStorage.setItem('jarots_active_slot', slotIdx);
-      localStorage.setItem(`jarots_profile_slot_${slotIdx}`, JSON.stringify({ fullName, bib }));
+      localStorage.setItem(`jarots_profile_slot_${slotIdx}`, JSON.stringify({
+        fullName,
+        bib,
+        registeredAt: Date.now()
+      }));
 
       ridersConfig[slotIdx].fullName = fullName;
       ridersConfig[slotIdx].bib = bib;
-      localStorage.setItem('jarots_4riders_cfg_v5', JSON.stringify(ridersConfig));
 
       perbaruiTampilanIdentitasPengirim();
       renderSemuaPesertaKePeta();
@@ -903,7 +766,7 @@
       if (prof && prof.fullName && prof.bib) {
         textEl.textContent = `No. ${prof.bib} — ${prof.fullName}`;
       } else {
-        textEl.textContent = `${cfg.id} (Belum diisi nama)`;
+        textEl.textContent = 'Belum Diisi';
       }
       slotEl.textContent = `(Slot ${activeSenderSlot + 1} • Ch #${cfg.ch})`;
     }
@@ -1163,123 +1026,6 @@
       reader.readAsText(file);
     }
 
-    // --- RENDER DAFTAR SOS (HANYA UNTUK PENONTON & PANITIA) ---
-    function renderDaftarSosTab(activeSosList) {
-      if (isPeserta) return;
-      const tabBtn   = document.getElementById('tabBtnSos');
-      const tabCount = document.getElementById('sosTabCount');
-      const headCnt  = document.getElementById('sosActiveHeadingCount');
-      const cardsBox = document.getElementById('sosActiveCardsContainer');
-      const histBox  = document.getElementById('sosHistoryContainer');
-
-      headCnt.textContent = activeSosList.length;
-      if (activeSosList.length > 0) {
-        tabBtn.classList.add('has-sos');
-        tabCount.textContent = `${activeSosList.length} Aktif`;
-      } else {
-        tabBtn.classList.remove('has-sos');
-        tabCount.textContent = '0';
-      }
-
-      if (activeSosList.length === 0) {
-        cardsBox.innerHTML = isFetchingCloud
-          ? `<div class="empty-sos-box">Sedang mengambil sinyal terbaru dari 4 channel ThingSpeak...</div>`
-          : `<div class="empty-sos-box">Tidak ada sinyal SOS aktif saat ini. Semua peserta dalam kondisi aman.</div>`;
-      } else {
-        cardsBox.innerHTML = `<div class="sos-cards-grid">` + activeSosList.map(item => `
-          <div class="sos-active-card">
-            <div class="sos-active-top">
-              <div>
-                <div style="font-size:14px; font-weight:800; color:#0f172a;">
-                  No. ${escapeHtml(item.bib)} — ${escapeHtml(item.fullName)}
-                </div>
-                <div style="font-size:11px; color:#64748b;">Slot ${item.idx + 1} • Channel #${escapeHtml(item.ch)}</div>
-              </div>
-              <span class="sos-badge-live">DARURAT AKTIF</span>
-            </div>
-            <div class="sos-reason-box">Kendala: ${escapeHtml(item.reason)}</div>
-            <div class="sos-meta">
-              <span><b>Waktu:</b> ${item.timeWIB}</span>
-              <span><b>Baterai HP:</b> ${escapeHtml(item.batt)}</span>
-              <span><b>GPS:</b> ${item.lat.toFixed(6)}, ${item.lng.toFixed(6)}</span>
-            </div>
-            <div class="btn-group" style="margin-top:2px;">
-              <button class="replay-btn" onclick="lihatSosDiPeta(${item.idx})">Lihat di Peta</button>
-              <a href="https://www.google.com/maps?q=${item.lat},${item.lng}" target="_blank"
-                 style="background:#15803d; color:#ffffff; padding:6px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:600;">
-                Buka Google Maps
-              </a>
-            </div>
-          </div>
-        `).join('') + `</div>`;
-      }
-
-      const riwayatSos = [];
-      for (let idx = 0; idx < 4; idx++) {
-        const cfg = ridersConfig[idx];
-        const pts = ridersRawPoints[idx] || [];
-        pts.forEach((pt, i) => {
-          if (pt.sos) {
-            const prev = i > 0 ? pts[i - 1] : null;
-            const isNewEvent = !prev || !prev.sos || (pt.sosReason && pt.sosReason !== prev.sosReason);
-            if (isNewEvent) {
-              riwayatSos.push({
-                idx,
-                bib: cfg.bib,
-                fullName: cfg.fullName,
-                reason: pt.sosReason || 'Butuh bantuan',
-                lat: pt.lat,
-                lng: pt.lng,
-                batt: pt.batt || '-',
-                timeMs: new Date(pt.time).getTime(),
-                timeWIB: new Date(pt.time).toLocaleString('id-ID', {
-                  timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit'
-                }) + ' WIB',
-                stillActive: (i === pts.length - 1 && cfg.sos)
-              });
-            }
-          }
-        });
-      }
-
-      riwayatSos.sort((a, b) => b.timeMs - a.timeMs);
-
-      if (riwayatSos.length === 0) {
-        histBox.innerHTML = `<div class="empty-sos-box">Belum ada riwayat sinyal SOS masuk pada sesi ini.</div>`;
-      } else {
-        histBox.innerHTML = `
-          <table class="sos-history-table">
-            <thead>
-              <tr>
-                <th>Waktu (WIB)</th>
-                <th>Peserta</th>
-                <th>Kendala Singkat</th>
-                <th>Status</th>
-                <th>Lokasi</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${riwayatSos.map(r => `
-                <tr>
-                  <td>${r.timeWIB}</td>
-                  <td><strong>No. ${escapeHtml(r.bib)}</strong> — ${escapeHtml(r.fullName)}</td>
-                  <td style="color:#991b1b; font-weight:600;">${escapeHtml(r.reason)}</td>
-                  <td>${r.stillActive
-                    ? '<span style="background:#dc2626; color:#fff; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:700;">AKTIF</span>'
-                    : '<span style="background:#e2e8f0; color:#334155; padding:2px 7px; border-radius:999px; font-size:10px; font-weight:600;">Selesai</span>'
-                  }</td>
-                  <td>
-                    <button class="secondary" style="padding:3px 7px; font-size:11px;" onclick="lihatSosDiPeta(${r.idx})">Peta</button>
-                    <a href="https://www.google.com/maps?q=${r.lat},${r.lng}" target="_blank" style="font-size:11px; margin-left:4px; color:#2563eb; font-weight:600;">Maps</a>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
-      }
-    }
-
     // --- RENDER PESERTA KE PETA ---
     function renderRiderPills() {
       if (isPeserta) return;
@@ -1303,7 +1049,10 @@
       selectedRider = idx;
       renderSemuaPesertaKePeta();
       const pos = riderMapObjects[idx].lastPos;
-      if (pos) map.setView(pos, 16);
+      if (pos) {
+        map.setView(pos, 16);
+        if (riderMapObjects[idx].marker) riderMapObjects[idx].marker.openPopup();
+      }
     }
 
     function fokusKePesertaSos() {
@@ -1446,9 +1195,7 @@
             reason: kendalaLabel,
             lat: terbaru.lat,
             lng: terbaru.lng,
-            batt: terbaru.batt || '-',
-            timeWIB,
-            ch: cfg.ch
+            timeWIB
           });
         }
 
@@ -1517,18 +1264,17 @@
           } else {
             const daftarSingkat = activeSosList.map(s => `No.${s.bib} ${s.fullName} (${s.reason})`).join(' | ');
             document.getElementById('sosBannerText').textContent =
-              `DARURAT SOS (${activeSosList.length} PESERTA BERSAMAAN): ${daftarSingkat}`;
+              `DARURAT SOS (${activeSosList.length} PESERTA): ${daftarSingkat}`;
           }
 
           if (isAdmin) {
             document.getElementById('logStatus').textContent =
-              `[DARURAT SOS] ${activeSosList.length} peserta sedang aktif SOS. Buka tab "Daftar Darurat SOS" untuk detail lengkap.`;
+              `[DARURAT SOS] No. ${lastSos.bib} (${lastSos.fullName}) — ${lastSos.reason} (${lastSos.timeWIB}).`;
           }
         } else {
           sosBanner.classList.remove('tampil');
         }
 
-        renderDaftarSosTab(activeSosList);
         kelolaSirineSosAdmin(activeSosList.length > 0, sosSignature);
       }
     }
@@ -1759,7 +1505,7 @@
       renderSemuaPesertaKePeta();
     }
 
-    // --- ADMIN PANEL & EKSPOR GPX / CSV ---
+    // --- ADMIN PANEL, RESET TOTAL & EKSPOR GPX / CSV ---
     function renderAdminRidersGrid() {
       if (!isAdmin) return;
       const grid = document.getElementById('adminRidersGrid');
@@ -1769,8 +1515,8 @@
             <strong><span class="rider-dot" style="background:${r.color}; margin-right:5px;"></span>Slot ${idx + 1} (${escapeHtml(r.id)})</strong>
             <button class="replay-btn" style="padding:3px 8px; font-size:11px;" onclick="salinLinkHpPeserta(${idx})">Salin Link HP</button>
           </div>
-          <input type="text" id="admBib_${idx}" value="${escapeHtml(r.bib)}" placeholder="Nomor Peserta Default" />
-          <input type="text" id="admName_${idx}" value="${escapeHtml(r.fullName)}" placeholder="Nama Peserta Default" />
+          <input type="text" id="admBib_${idx}" value="${escapeHtml(r.bib)}" placeholder="Nomor Peserta" />
+          <input type="text" id="admName_${idx}" value="${escapeHtml(r.fullName)}" placeholder="Nama Peserta" />
           <input type="text" id="admCh_${idx}" value="${escapeHtml(r.ch)}" placeholder="Channel ID ThingSpeak" />
           <input type="text" id="admWk_${idx}" value="${escapeHtml(r.wk)}" placeholder="Write API Key" />
           <input type="text" id="admRk_${idx}" value="${escapeHtml(r.rk)}" placeholder="Read API Key" />
@@ -1787,10 +1533,82 @@
         wk: document.getElementById(`admWk_${idx}`).value.trim(),
         rk: document.getElementById(`admRk_${idx}`).value.trim()
       }));
-      const cleanToSave = ridersConfig.map(({ sos, sosReason, ...rest }) => rest);
-      localStorage.setItem('jarots_4riders_cfg_v5', JSON.stringify(cleanToSave));
-      ambilSemuaDataThingSpeak();
-      alert('Konfigurasi 4 Channel ThingSpeak berhasil disimpan!');
+      const cleanKeys = ridersConfig.map(r => ({ ch: r.ch, wk: r.wk, rk: r.rk }));
+      localStorage.setItem('jarots_4riders_cfg_v6', JSON.stringify(cleanKeys));
+      renderSemuaPesertaKePeta();
+      alert('Konfigurasi Channel ThingSpeak berhasil disimpan!');
+    }
+
+    async function resetTotalSemuaData() {
+      if (!isAdmin) return;
+      const yakin = confirm(
+        'Yakin ingin me-reset TOTAL semua data?\n\n' +
+        '• Semua nama peserta & nomor BIB dikembalikan ke default (Peserta 1–4)\n' +
+        '• Semua jejak GPS & status SOS di peta dihapus\n' +
+        '• HP peserta yang sedang terhubung akan diminta registrasi ulang dari nol'
+      );
+      if (!yakin) return;
+
+      if (isReplayMode) keluarModeReplay();
+      hentikanSirineSos();
+
+      // 1. Bersihkan seluruh memori lokal browser ini
+      localStorage.removeItem('jarots_4riders_cfg_v6');
+      localStorage.removeItem('jarots_4riders_cfg_v5');
+      localStorage.removeItem('jarots_4riders_cfg_v4');
+      localStorage.removeItem('jarots_auto_track');
+      localStorage.removeItem('jarots_active_slot');
+      for (let i = 0; i < 4; i++) {
+        localStorage.removeItem(`jarots_profile_slot_${i}`);
+      }
+
+      // 2. Kembalikan konfigurasi ke default awal
+      ridersConfig = DEFAULT_RIDERS.map(r => ({ ...r, sos: false, sosReason: '' }));
+      ridersRawPoints = { 0: [], 1: [], 2: [], 3: [] };
+      selectedRider = 0;
+      latestSosRiderIdx = null;
+      pertamaKaliFokus = true;
+
+      // 3. Bersihkan marker dan garis jejak di peta
+      riderMapObjects.forEach(obj => {
+        if (obj.marker) {
+          map.removeLayer(obj.marker);
+          obj.marker = null;
+        }
+        obj.snappedLine.setLatLngs([]);
+        obj.offTrackLine.setLatLngs([]);
+        obj.lastPos = null;
+      });
+
+      document.getElementById('sosBanner').classList.remove('tampil');
+      document.getElementById('alertBanner').classList.remove('tampil');
+      document.getElementById('logStatus').textContent = 'Log Admin: Reset total dijalankan, menyinkronkan ke 4 channel...';
+
+      renderAdminRidersGrid();
+      renderSemuaPesertaKePeta();
+
+      // 4. Kirim sinyal RESET ke ke-4 channel ThingSpeak agar HP peserta & penonton ikut bersih
+      const hasilKirim = await Promise.all(ridersConfig.map(async (cfg, idx) => {
+        if (!cfg.wk) return false;
+        const resetStatus = `RESET|${DEFAULT_RIDERS[idx].bib}|${DEFAULT_RIDERS[idx].fullName}|`;
+        const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(cfg.wk)}&field1=0&field2=0&field3=0&field4=100&field5=0&status=${encodeURIComponent(resetStatus)}`;
+        try {
+          const res = await fetch(url);
+          const entry = await res.text();
+          return entry && entry !== '0';
+        } catch (e) {
+          return false;
+        }
+      }));
+
+      const suksesCount = hasilKirim.filter(Boolean).length;
+      if (suksesCount === 4) {
+        document.getElementById('logStatus').textContent = 'Log Admin: Reset total berhasil untuk semua 4 channel & HP peserta.';
+        alert('Reset total berhasil! Semua nama peserta dan peta telah dikembalikan ke awal.');
+      } else {
+        document.getElementById('logStatus').textContent = `Log Admin: Reset lokal selesai (${suksesCount}/4 channel menerima sinyal langsung).`;
+        alert(`Data lokal sudah bersih (${suksesCount}/4 channel langsung ter-update). Jika ada slot yang baru saja mengirim data, tunggu 15 detik lalu tekan Reset Total sekali lagi.`);
+      }
     }
 
     function salinLinkHpPeserta(idx) {
@@ -1869,7 +1687,7 @@
     async function ambilSatuChannelThingSpeak(idx) {
       const cfg = ridersConfig[idx];
       if (!cfg.ch) return;
-      const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=300&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
+      const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=150&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
       try {
@@ -1877,11 +1695,22 @@
         clearTimeout(timeoutId);
         const data = await res.json();
         const feeds = data.feeds || [];
-        const pts = [];
+        let pts = [];
         let latestSos = false;
         let latestReason = '';
+        let latestResetMs = 0;
 
         feeds.forEach(f => {
+          if (f.status && f.status.startsWith('RESET|')) {
+            pts = [];
+            latestSos = false;
+            latestReason = '';
+            cfg.bib = DEFAULT_RIDERS[idx].bib;
+            cfg.fullName = DEFAULT_RIDERS[idx].fullName;
+            latestResetMs = new Date(f.created_at).getTime();
+            return;
+          }
+
           const lat = parseFloat(f.field1);
           const lng = parseFloat(f.field2);
           const f3  = parseFloat(f.field3);
@@ -1911,8 +1740,24 @@
           }
         });
 
+        ridersRawPoints[idx] = pts;
+
+        if (feeds.length === 0) {
+          cfg.bib = DEFAULT_RIDERS[idx].bib;
+          cfg.fullName = DEFAULT_RIDERS[idx].fullName;
+          cfg.sos = false;
+          cfg.sosReason = '';
+          if (riderMapObjects[idx].marker) {
+            map.removeLayer(riderMapObjects[idx].marker);
+            riderMapObjects[idx].marker = null;
+          }
+          riderMapObjects[idx].snappedLine.setLatLngs([]);
+          riderMapObjects[idx].offTrackLine.setLatLngs([]);
+          riderMapObjects[idx].lastPos = null;
+          return;
+        }
+
         if (pts.length > 0) {
-          ridersRawPoints[idx] = pts;
           if (isPeserta && idx === activeSenderSlot) {
             if (!isCancellingSos) {
               isSenderSosActive = latestSos;
@@ -1932,6 +1777,28 @@
         } else {
           cfg.sos = false;
           cfg.sosReason = '';
+          if (riderMapObjects[idx].marker) {
+            map.removeLayer(riderMapObjects[idx].marker);
+            riderMapObjects[idx].marker = null;
+          }
+          riderMapObjects[idx].snappedLine.setLatLngs([]);
+          riderMapObjects[idx].offTrackLine.setLatLngs([]);
+          riderMapObjects[idx].lastPos = null;
+
+          if (isPeserta && idx === activeSenderSlot && latestResetMs > 0) {
+            const prof = getSavedProfile(activeSenderSlot);
+            const regTime = prof && prof.registeredAt ? prof.registeredAt : 0;
+            if (prof && latestResetMs > regTime) {
+              hentikanGpsHp(true);
+              localStorage.removeItem(`jarots_profile_slot_${activeSenderSlot}`);
+              isSenderSosActive = false;
+              currentSenderSosReason = '';
+              perbaruiTampilanTombolSosPeserta(false, '', 'Status SOS: Normal (Tidak Aktif)');
+              perbaruiTampilanIdentitasPengirim();
+              bukaModalRegistrasi();
+              logSender('Admin melakukan reset sistem. Silakan isi ulang Nama & No. BIB.');
+            }
+          }
         }
       } catch (err) {
         clearTimeout(timeoutId);
