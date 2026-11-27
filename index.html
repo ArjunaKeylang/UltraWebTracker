@@ -317,7 +317,7 @@
     <div class="header-right">
       <button id="btnTogglePeserta" class="mode-switch-btn" onclick="bukaModePeserta()">Mode HP Peserta (GPS)</button>
       <span id="roleTag" class="role-tag">Penonton (Read-Only)</span>
-      <div id="statusBadge" class="badge">Memuat data...</div>
+      <div id="statusBadge" class="badge">Menghubungkan...</div>
     </div>
   </header>
 
@@ -527,12 +527,20 @@
       { id: 'Jarots004', bib: '004', fullName: 'Peserta 4', color: '#ea580c', ch: '3597330', wk: '30DP5UD6HY8CZGQV', rk: 'CMW5G0CYIHIFMFP5', sos: false, sosReason: '' }
     ];
 
-    let ridersConfig = JSON.parse(localStorage.getItem('jarots_4riders_cfg_v4') || 'null') || DEFAULT_RIDERS;
+    let ridersConfig = JSON.parse(
+      localStorage.getItem('jarots_4riders_cfg_v4') ||
+      localStorage.getItem('jarots_4riders_cfg_v3') ||
+      localStorage.getItem('jarots_4riders_cfg_v2') ||
+      localStorage.getItem('jarots_4riders_cfg_v1') ||
+      'null'
+    ) || DEFAULT_RIDERS;
+
     let ridersRawPoints = { 0: [], 1: [], 2: [], 3: [] };
     let selectedRider = 0;
     let activeSenderSlot = 0;
     let latestSosRiderIdx = null;
     let activeTab = 'map';
+    let isFetchingCloud = false;
 
     const params    = new URLSearchParams(window.location.search);
     const roleParam = params.get('role');
@@ -1108,9 +1116,10 @@
         tabCount.textContent = '0';
       }
 
-      // 1. Render Kartu SOS Aktif Bersamaan
       if (activeSosList.length === 0) {
-        cardsBox.innerHTML = `<div class="empty-sos-box">Tidak ada sinyal SOS aktif saat ini. Semua peserta dalam kondisi aman.</div>`;
+        cardsBox.innerHTML = isFetchingCloud
+          ? `<div class="empty-sos-box">Sedang mengambil sinyal terbaru dari 4 channel ThingSpeak...</div>`
+          : `<div class="empty-sos-box">Tidak ada sinyal SOS aktif saat ini. Semua peserta dalam kondisi aman.</div>`;
       } else {
         cardsBox.innerHTML = `<div class="sos-cards-grid">` + activeSosList.map(item => `
           <div class="sos-active-card">
@@ -1140,7 +1149,6 @@
         `).join('') + `</div>`;
       }
 
-      // 2. Render Riwayat Kejadian SOS Terekam dari Seluruh Peserta
       const riwayatSos = [];
       for (let idx = 0; idx < 4; idx++) {
         const cfg = ridersConfig[idx];
@@ -1398,7 +1406,6 @@
         }
       }
 
-      // Perbarui Banner SOS Atas (mendukung 1 maupun banyak peserta bersamaan)
       const sosBanner = document.getElementById('sosBanner');
       if (activeSosList.length > 0 && !isReplayMode) {
         sosBanner.classList.add('tampil');
@@ -1436,7 +1443,7 @@
       document.getElementById('coordText').textContent = '-';
       document.getElementById('timeText').textContent = '-';
       const badge = document.getElementById('statusBadge');
-      badge.textContent = `Menunggu No. ${cfg.bib} (Ch #${cfg.ch})...`;
+      badge.textContent = isFetchingCloud ? 'Sinkronisasi...' : `Menunggu No. ${cfg.bib} (Ch #${cfg.ch})`;
       badge.className = 'badge';
     }
 
@@ -1768,61 +1775,69 @@
       if (alarmAktif) bunyikanBeepOffTrack();
     }
 
-    // --- AMBIL DATA & STATUS IDENTITAS/SOS DARI 4 CHANNEL THINGSPEAK ---
-    async function ambilSemuaDataThingSpeak() {
-      if (isReplayMode) return;
-      for (let idx = 0; idx < 4; idx++) {
-        const cfg = ridersConfig[idx];
-        if (!cfg.ch) continue;
-        const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=1000&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
-        try {
-          const res = await fetch(url);
-          const data = await res.json();
-          const feeds = data.feeds || [];
-          const pts = [];
-          let latestSos = false;
-          let latestReason = '';
+    // --- AMBIL DATA PARALEL CEPAT DARI 4 CHANNEL THINGSPEAK ---
+    async function ambilSatuChannelThingSpeak(idx) {
+      const cfg = ridersConfig[idx];
+      if (!cfg.ch) return;
+      const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=300&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        const data = await res.json();
+        const feeds = data.feeds || [];
+        const pts = [];
+        let latestSos = false;
+        let latestReason = '';
 
-          feeds.forEach(f => {
-            const lat = parseFloat(f.field1);
-            const lng = parseFloat(f.field2);
-            let ptSos = (f.field5 === '1');
-            let ptReason = '';
+        feeds.forEach(f => {
+          const lat = parseFloat(f.field1);
+          const lng = parseFloat(f.field2);
+          let ptSos = (f.field5 === '1');
+          let ptReason = '';
 
-            if (f.status && f.status.includes('|')) {
-              const parts = f.status.split('|');
-              if (parts[0] === 'SOS') ptSos = true;
-              if (parts[0] === 'OK') ptSos = false;
-              if (parts[1]) cfg.bib = parts[1];
-              if (parts[2]) cfg.fullName = parts[2];
-              if (parts[3]) ptReason = parts[3];
-            }
-
-            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-              pts.push({
-                lat, lng,
-                speed: f.field3 || '0.0',
-                batt: f.field4 ? f.field4 + '%' : '-',
-                sos: ptSos,
-                sosReason: ptReason,
-                time: f.created_at
-              });
-              latestSos = ptSos;
-              latestReason = ptReason;
-            }
-          });
-
-          if (pts.length > 0) {
-            ridersRawPoints[idx] = pts;
-            if (!(roleParam === 'peserta' && idx === activeSenderSlot)) {
-              cfg.sos = latestSos;
-              cfg.sosReason = latestSos ? latestReason : '';
-            }
+          if (f.status && f.status.includes('|')) {
+            const parts = f.status.split('|');
+            if (parts[0] === 'SOS') ptSos = true;
+            if (parts[0] === 'OK') ptSos = false;
+            if (parts[1]) cfg.bib = parts[1];
+            if (parts[2]) cfg.fullName = parts[2];
+            if (parts[3]) ptReason = parts[3];
           }
-        } catch (err) {
-          console.error(`Gagal memuat data Slot ${idx + 1}:`, err);
+
+          if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+            pts.push({
+              lat, lng,
+              speed: f.field3 || '0.0',
+              batt: f.field4 ? f.field4 + '%' : '-',
+              sos: ptSos,
+              sosReason: ptReason,
+              time: f.created_at
+            });
+            latestSos = ptSos;
+            latestReason = ptReason;
+          }
+        });
+
+        if (pts.length > 0) {
+          ridersRawPoints[idx] = pts;
+          if (!(roleParam === 'peserta' && idx === activeSenderSlot)) {
+            cfg.sos = latestSos;
+            cfg.sosReason = latestSos ? latestReason : '';
+          }
         }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.error(`Gagal memuat data Slot ${idx + 1}:`, err);
       }
+    }
+
+    async function ambilSemuaDataThingSpeak() {
+      if (isReplayMode || isFetchingCloud) return;
+      isFetchingCloud = true;
+      await Promise.all([0, 1, 2, 3].map(idx => ambilSatuChannelThingSpeak(idx)));
+      isFetchingCloud = false;
       renderAdminRidersGrid();
       renderSemuaPesertaKePeta();
     }
@@ -1858,6 +1873,7 @@
       }
 
       renderAdminRidersGrid();
+      renderSemuaPesertaKePeta();
       await muatRuteGPX();
       await ambilSemuaDataThingSpeak();
       setInterval(ambilSemuaDataThingSpeak, 10000);
