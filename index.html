@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web-Based Live Tracking (4 Peserta) - Jarot's Company Ultra Cycling</title>
+  <title>Web-Based Live Tracking (4 Peserta + SOS) - Jarot's Company Ultra Cycling</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
@@ -18,6 +18,10 @@
       font-size: 11px; padding: 3px 8px; border-radius: 4px;
       background: #1e293b; color: #94a3b8; border: 1px solid #334155;
     }
+    .mode-switch-btn {
+      font-size: 11px; padding: 4px 10px; border-radius: 6px;
+      background: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; border: none;
+    }
     .badge {
       font-size: 12px; padding: 4px 10px; border-radius: 999px;
       background: #334155; color: #e2e8f0; font-weight: 600;
@@ -30,7 +34,7 @@
     /* Banner Darurat SOS */
     #sosBanner {
       display: none; background: #991b1b; color: #ffffff;
-      padding: 9px 16px; font-size: 13px; font-weight: 700;
+      padding: 10px 16px; font-size: 13px; font-weight: 700;
       justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
       border-bottom: 2px solid #fecaca; animation: kedip 1s infinite;
     }
@@ -43,11 +47,6 @@
       justify-content: space-between; align-items: center; gap: 12px;
     }
     #alertBanner.tampil { display: flex; }
-
-    /* Container Utama */
-    #mapViewContainer {
-      display: flex; flex-direction: column; flex: 1; min-height: 0;
-    }
 
     /* Modal Popup (Registrasi & Input Kendala SOS) */
     .modal-backdrop {
@@ -112,12 +111,11 @@
       background: #7f1d1d; animation: kedip 0.9s infinite;
     }
 
-    #map { flex: 1; width: 100%; min-height: 220px; }
+    #map { flex: 1; width: 100%; min-height: 230px; }
 
-    /* Panel Informasi Bawah */
     .panel {
       background: #ffffff; border-top: 1px solid #e2e8f0; padding: 10px 16px;
-      display: flex; flex-direction: column; gap: 9px; max-height: 45vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 9px; max-height: 46vh; overflow-y: auto;
     }
 
     /* Bar Pemilih 4 Peserta */
@@ -150,7 +148,7 @@
     button.replay-btn { background: #2563eb; color: #ffffff; font-weight: 600; }
     button.download { background: #15803d; color: #ffffff; font-weight: 600; }
     button.warn-btn { background: #d97706; color: #ffffff; font-weight: 600; }
-    button.alarm-on { background: #b91c1c; color: #ffffff; font-weight: 600; }
+    button.alarm-on { background: #b91c1c; color: #ffffff; }
     input[type="text"] {
       border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; font-weight: 500;
     }
@@ -188,7 +186,7 @@
   <div id="regModal" class="modal-backdrop">
     <div class="modal-card">
       <h2>Registrasi Identitas Peserta</h2>
-      <p>Masukkan <b>Nama Lengkap</b> dan <b>Nomor Peserta (BIB)</b> Anda sebelum memulai pelacakan agar panitia dapat memantau posisi Anda di peta.</p>
+      <p>Masukkan <b>Nama Lengkap</b> dan <b>Nomor Peserta</b> Anda sebelum memulai pelacakan agar panitia dapat memantau posisi Anda di peta.</p>
       <div class="form-field">
         <label for="regSlotSelect">Slot Channel Peserta</label>
         <select id="regSlotSelect">
@@ -237,174 +235,173 @@
   </div>
 
   <header>
-    <h1>Ultra-Cycling Web Tracker</h1>
+    <h1>Ultra-Cycling Web Tracker (4 Peserta)</h1>
     <div class="header-right">
-      <span id="roleTag" class="role-tag">Penonton</span>
-      <div id="statusBadge" class="badge">Menghubungkan...</div>
+      <button id="btnTogglePeserta" class="mode-switch-btn" onclick="bukaModePeserta()">Mode HP Peserta (GPS)</button>
+      <span id="roleTag" class="role-tag">Penonton (Read-Only)</span>
+      <div id="statusBadge" class="badge">Memuat data...</div>
     </div>
   </header>
 
-  <!-- BANNER DARURAT SOS (HANYA UNTUK PENONTON & ADMIN PANITIA) -->
+  <!-- BANNER DARURAT SOS -->
   <div id="sosBanner">
     <span id="sosBannerText">DARURAT SOS: Peserta membutuhkan bantuan segera!</span>
     <div class="btn-group">
-      <button id="btnMuteSos" class="warn-btn" style="display:none;" onclick="bisukanSuaraSos()">Bisukan Suara</button>
-      <button class="secondary" onclick="fokusKePesertaSos()">Fokus Lokasi</button>
-      <a id="sosGmapsLink" href="#" target="_blank" style="background:#ffffff; color:#991b1b; padding:6px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:700;">Google Maps</a>
+      <button id="btnMuteSos" class="warn-btn" onclick="bisukanSuaraSos()">Bisukan Suara</button>
+      <button class="secondary" onclick="fokusKePesertaSos()">Fokus Lokasi SOS</button>
+      <a id="sosGmapsLink" href="#" target="_blank" style="background:#ffffff; color:#991b1b; padding:6px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:700;">Buka Google Maps</a>
     </div>
   </div>
 
-  <!-- BANNER KELUAR JALUR (HANYA ADMIN PANITIA) -->
+  <!-- BANNER KELUAR JALUR -->
   <div id="alertBanner">
     <span id="alertText">PERINGATAN ADMIN: Peserta keluar dari jalur rute GPX!</span>
     <button class="secondary" onclick="fokusKePeserta()">Lihat Posisi</button>
   </div>
 
-  <!-- HALAMAN UTAMA PETA LIVE & KONTROL -->
-  <div id="mapViewContainer">
-    <!-- PANEL KHUSUS HP PESERTA (Hanya tampil jika ?role=peserta) -->
-    <div id="pesertaPanel">
-      <div class="browser-tip">
-        <b>Penting:</b> Buka tautan ini langsung di <b>Safari / Google Chrome</b> (bukan peramban dalam WhatsApp) dan pilih <b>Izinkan / Allow</b> lokasi agar izin tersimpan permanen.
-      </div>
-
-      <div class="peserta-identity-bar">
-        <div style="font-size:13px; color:#0f172a;">
-          Peserta Aktif: <strong id="activeRiderIdentityText">Belum Diisi</strong>
-          <span id="activeSlotBadge" style="font-size:11px; color:#1e40af; margin-left:6px;">(Slot 1)</span>
-        </div>
-        <button class="secondary" onclick="bukaModalRegistrasi()">Ubah Nama / No. BIB</button>
-      </div>
-
-      <div class="sos-box">
-        <div style="font-size:12px; color:#7f1d1d;">
-          <strong>Tombol Darurat (SOS):</strong> Tekan jika mengalami kendala teknis, medis, atau butuh evakuasi.
-          <div id="sosSenderStatus" style="font-size:11px; font-weight:700; margin-top:2px;">Status SOS: Normal (Tidak Aktif)</div>
-        </div>
-        <div class="btn-group">
-          <button id="btnTriggerSos" class="btn-sos" onclick="bukaModalSos()">KIRIM SINYAL SOS</button>
-          <button id="btnCancelSos" class="secondary" onclick="batalkanSosPeserta()" style="display:none;">Batalkan SOS</button>
-        </div>
-      </div>
-
-      <div class="peserta-row">
-        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-          <strong style="font-size:13px; color:#1e3a8a;">Interval Kirim:</strong>
-          <select id="senderIntervalSelect">
-            <option value="15000" selected>Tiap 15 detik</option>
-            <option value="30000">Tiap 30 detik</option>
-            <option value="60000">Tiap 60 detik</option>
-          </select>
-        </div>
-        <div class="btn-group">
-          <button id="btnStartGps" class="download" onclick="mulaiKirimGpsHp(true)">Mulai Kirim GPS Asli</button>
-          <button id="btnStopGps" class="alarm-on" onclick="hentikanGpsHp()" disabled>Stop</button>
-          <button class="secondary" onclick="fokusKePeserta()">Posisi Saya</button>
-          <button class="secondary" onclick="lihatSemuaRute()">Lihat Rute</button>
-        </div>
-      </div>
-
-      <div class="peserta-stats">
-        <span>Izin Lokasi: <strong id="gpsPermText">Belum Aktif</strong></span>
-        <span>Layar (Wake Lock): <strong id="wakeLockText">Nonaktif</strong></span>
-        <span>Akurasi: <strong id="gpsAccText">-</strong></span>
-        <span>Baterai HP: <strong id="phoneBattText">Mendeteksi...</strong></span>
-        <span>Terkirim: <strong id="sentCountText">0 paket</strong></span>
-      </div>
-      <div id="senderLog">Siap mengirim koordinat dari peramban HP ke ThingSpeak...</div>
+  <!-- PANEL KHUSUS HP PESERTA -->
+  <div id="pesertaPanel">
+    <div class="browser-tip">
+      <b>Penting:</b> Buka tautan ini langsung di <b>Safari / Google Chrome</b> (bukan peramban dalam WhatsApp) dan pilih <b>Izinkan / Allow</b> lokasi agar izin tersimpan permanen.
     </div>
 
-    <div id="map"></div>
+    <!-- Identitas Peserta Terdaftar -->
+    <div class="peserta-identity-bar">
+      <div style="font-size:13px; color:#0f172a;">
+        Peserta Aktif: <strong id="activeRiderIdentityText">Belum Diisi</strong>
+        <span id="activeSlotBadge" style="font-size:11px; color:#1e40af; margin-left:6px;">(Slot 1)</span>
+      </div>
+      <button class="secondary" onclick="bukaModalRegistrasi()">Ubah Nama / Nomor Peserta</button>
+    </div>
 
-    <!-- PANEL BAWAH: BIB & STATISTIK PESERTA (Disembunyikan di Mode HP Peserta) -->
-    <div id="bottomInfoPanel" class="panel">
-      <div class="rider-selector-bar" id="riderSelectorBar"></div>
+    <!-- Tombol Darurat SOS -->
+    <div class="sos-box">
+      <div style="font-size:12px; color:#7f1d1d;">
+        <strong>Tombol Darurat (SOS):</strong> Tekan jika mengalami kendala teknis, medis, atau butuh evakuasi.
+        <div id="sosSenderStatus" style="font-size:11px; font-weight:700; margin-top:2px;">Status SOS: Normal (Tidak Aktif)</div>
+      </div>
+      <div class="btn-group">
+        <button id="btnTriggerSos" class="btn-sos" onclick="bukaModalSos()">KIRIM SINYAL SOS</button>
+        <button id="btnCancelSos" class="secondary" onclick="batalkanSosPeserta()" style="display:none;">Batalkan SOS</button>
+      </div>
+    </div>
 
-      <div id="replayBar">
-        <button id="btnPlayPause" class="replay-btn" onclick="togglePlayPause()">Jeda</button>
-        <input type="range" id="replaySlider" min="0" max="0" value="0" oninput="geserTimeline(this.value)" />
-        <span id="replayProgressText">Titik 0 / 0</span>
-        <select id="speedSelect" onchange="ubahKecepatanReplay()">
-          <option value="1000">1x</option>
-          <option value="400" selected>3x</option>
-          <option value="150">8x</option>
+    <div class="peserta-row">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+        <strong style="font-size:13px; color:#1e3a8a;">Interval Kirim:</strong>
+        <select id="senderIntervalSelect">
+          <option value="15000" selected>Tiap 15 detik</option>
+          <option value="30000">Tiap 30 detik</option>
+          <option value="60000">Tiap 60 detik</option>
         </select>
-        <button class="secondary" onclick="keluarModeReplay()">Kembali ke Live</button>
+      </div>
+      <div class="btn-group">
+        <button id="btnStartGps" class="download" onclick="mulaiKirimGpsHp(true)">Mulai Kirim GPS Asli</button>
+        <button id="btnStopGps" class="alarm-on" onclick="hentikanGpsHp()" disabled>Stop</button>
+        <button class="warn-btn" onclick="mulaiSimulasi4Peserta()">Simulasi 4 Peserta</button>
+      </div>
+    </div>
+
+    <div class="peserta-stats">
+      <span>Izin Lokasi: <strong id="gpsPermText">Belum Aktif</strong></span>
+      <span>Layar (Wake Lock): <strong id="wakeLockText">Nonaktif</strong></span>
+      <span>Akurasi: <strong id="gpsAccText">-</strong></span>
+      <span>Baterai HP: <strong id="phoneBattText">Mendeteksi...</strong></span>
+      <span>Terkirim: <strong id="sentCountText">0 paket</strong></span>
+    </div>
+    <div id="senderLog">Siap mengirim koordinat dari peramban HP ke ThingSpeak...</div>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="panel">
+    <!-- Pemilih 4 Peserta Aktif -->
+    <div class="rider-selector-bar" id="riderSelectorBar"></div>
+
+    <!-- Kontrol Pemutar Ulang Rekaman (Replay) -->
+    <div id="replayBar">
+      <button id="btnPlayPause" class="replay-btn" onclick="togglePlayPause()">Jeda</button>
+      <input type="range" id="replaySlider" min="0" max="0" value="0" oninput="geserTimeline(this.value)" />
+      <span id="replayProgressText">Titik 0 / 0</span>
+      <select id="speedSelect" onchange="ubahKecepatanReplay()">
+        <option value="1000">1x</option>
+        <option value="400" selected>3x</option>
+        <option value="150">8x</option>
+      </select>
+      <button class="secondary" onclick="keluarModeReplay()">Kembali ke Live</button>
+    </div>
+
+    <div class="panel-top">
+      <div class="info-grid">
+        <div class="info-item">
+          <span>No. &amp; Nama Peserta</span>
+          <strong id="pesertaIdText">Jarots001</strong>
+        </div>
+        <div class="info-item">
+          <span>Status</span>
+          <strong id="statusText">Menunggu GPS</strong>
+        </div>
+        <div class="info-item">
+          <span>Jarak Tempuh</span>
+          <strong id="jarakTempuhText">0.00 km</strong>
+        </div>
+        <div class="info-item">
+          <span>Durasi Rekam</span>
+          <strong id="durasiText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Baterai HP</span>
+          <strong id="bateraiText">-</strong>
+        </div>
+        <div class="info-item" id="deviasiBox" style="display:none;">
+          <span>Deviasi GPX</span>
+          <strong id="deviasiText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Koordinat</span>
+          <strong id="coordText">-</strong>
+        </div>
+        <div class="info-item">
+          <span>Waktu (WIB)</span>
+          <strong id="timeText">-</strong>
+        </div>
       </div>
 
-      <div class="panel-top">
-        <div class="info-grid">
-          <div class="info-item">
-            <span>No. BIB &amp; Nama Peserta</span>
-            <strong id="pesertaIdText">Jarots001</strong>
-          </div>
-          <div class="info-item">
-            <span>Status</span>
-            <strong id="statusText">Menunggu GPS</strong>
-          </div>
-          <div class="info-item">
-            <span>Jarak Tempuh</span>
-            <strong id="jarakTempuhText">0.00 km</strong>
-          </div>
-          <div class="info-item">
-            <span>Durasi Rekam</span>
-            <strong id="durasiText">-</strong>
-          </div>
-          <div class="info-item">
-            <span>Baterai HP</span>
-            <strong id="bateraiText">-</strong>
-          </div>
-          <div class="info-item" id="deviasiBox" style="display:none;">
-            <span>Deviasi GPX</span>
-            <strong id="deviasiText">-</strong>
-          </div>
-          <div class="info-item">
-            <span>Koordinat</span>
-            <strong id="coordText">-</strong>
-          </div>
-          <div class="info-item">
-            <span>Waktu (WIB)</span>
-            <strong id="timeText">-</strong>
-          </div>
-        </div>
+      <div class="btn-group">
+        <button id="btnBukaReplay" class="replay-btn" onclick="mulaiModeReplay()">Putar Ulang Rekaman</button>
+        <button onclick="fokusKePeserta()">Fokus Peserta</button>
+        <button class="secondary" onclick="lihatSemuaRute()">Lihat Semua Rute</button>
+      </div>
+    </div>
 
-        <div class="btn-group">
-          <button id="btnBukaReplay" class="replay-btn" onclick="mulaiModeReplay()">Putar Ulang Rekaman</button>
-          <button onclick="fokusKePeserta()">Fokus Peserta</button>
-          <button class="secondary" onclick="lihatSemuaRute()">Lihat Semua Rute</button>
+    <!-- Panel Khusus Admin Panitia (?role=admin) -->
+    <div id="adminBar">
+      <div class="admin-controls">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <label>Toleransi Jalur:</label>
+          <select id="batasSelect" onchange="renderSemuaPesertaKePeta()">
+            <option value="30">30 m</option>
+            <option value="50" selected>50 m</option>
+            <option value="100">100 m</option>
+            <option value="200">200 m</option>
+          </select>
+
+          <button id="btnAudioStatus" class="warn-btn" onclick="aktifkanAudioPanitia(true)">Suara SOS: Klik Aktifkan</button>
+          <button id="btnAlarm" class="secondary" onclick="toggleAlarm()">Alarm Keluar Jalur: MATI</button>
+          <button class="download" onclick="downloadRekamanGPX()">Download .GPX</button>
+          <button class="secondary" onclick="downloadRekamanCSV()">Download .CSV</button>
+          <label style="cursor:pointer; background:#e2e8f0; padding:6px 10px; border-radius:6px; font-weight:500;">
+            Upload GPX <input type="file" accept=".gpx" style="display:none;" onchange="uploadGpxManual(event)" />
+          </label>
         </div>
+        <div id="logStatus">Log Admin: Belum ada pelanggaran jalur atau SOS.</div>
       </div>
 
-      <!-- Panel Khusus Admin Panitia (?role=admin) -->
-      <div id="adminBar">
-        <div class="admin-controls">
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <label>Toleransi Jalur:</label>
-            <select id="batasSelect" onchange="renderSemuaPesertaKePeta()">
-              <option value="30">30 m</option>
-              <option value="50" selected>50 m</option>
-              <option value="100">100 m</option>
-              <option value="200">200 m</option>
-            </select>
-
-            <button id="btnAudioStatus" class="warn-btn" onclick="aktifkanAudioPanitia(true)">Suara SOS: Klik Aktifkan</button>
-            <button id="btnAlarm" class="secondary" onclick="toggleAlarm()">Alarm Keluar Jalur: MATI</button>
-            <button class="download" onclick="downloadRekamanGPX()">Download .GPX</button>
-            <button class="secondary" onclick="downloadRekamanCSV()">Download .CSV</button>
-            <label style="cursor:pointer; background:#e2e8f0; padding:6px 10px; border-radius:6px; font-weight:500;">
-              Upload GPX <input type="file" accept=".gpx" style="display:none;" onchange="uploadGpxManual(event)" />
-            </label>
-            <button class="alarm-on" onclick="resetTotalSemuaData()">Reset Total Semua Data</button>
-          </div>
-          <div id="logStatus">Log Admin: Belum ada pelanggaran jalur atau SOS.</div>
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <strong>Konfigurasi 4 Channel ThingSpeak (Bagikan Link Khusus HP ke Peserta):</strong>
-          <button class="download" onclick="simpanKonfigurasiAdmin()">Simpan Perubahan Konfigurasi</button>
-        </div>
-        <div class="admin-riders-grid" id="adminRidersGrid"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <strong>Konfigurasi 4 Channel ThingSpeak (Peserta 1 – 4):</strong>
+        <button class="download" onclick="simpanKonfigurasiAdmin()">Simpan Perubahan Konfigurasi</button>
       </div>
+      <div class="admin-riders-grid" id="adminRidersGrid"></div>
     </div>
   </div>
 
@@ -419,41 +416,20 @@
       { id: 'Jarots004', bib: '004', fullName: 'Peserta 4', color: '#ea580c', ch: '3597330', wk: '30DP5UD6HY8CZGQV', rk: 'CMW5G0CYIHIFMFP5', sos: false, sosReason: '' }
     ];
 
-    const rawSavedCfg = JSON.parse(localStorage.getItem('jarots_4riders_cfg_v6') || 'null');
-
-    let ridersConfig = DEFAULT_RIDERS.map((def, idx) => {
-      const saved = rawSavedCfg && rawSavedCfg[idx] ? rawSavedCfg[idx] : {};
-      return {
-        ...def,
-        ch: saved.ch || def.ch,
-        wk: saved.wk || def.wk,
-        rk: saved.rk || def.rk,
-        sos: false,
-        sosReason: ''
-      };
-    });
-
+    let ridersConfig = JSON.parse(localStorage.getItem('jarots_4riders_cfg_v4') || 'null') || DEFAULT_RIDERS;
     let ridersRawPoints = { 0: [], 1: [], 2: [], 3: [] };
     let selectedRider = 0;
     let activeSenderSlot = 0;
     let latestSosRiderIdx = null;
-    let isFetchingCloud = false;
 
     const params    = new URLSearchParams(window.location.search);
     const roleParam = params.get('role');
     const isAdmin   = roleParam === 'admin';
-    const isPeserta = roleParam === 'peserta';
 
     if (isAdmin) {
       document.getElementById('roleTag').textContent = 'Admin Panitia';
       document.getElementById('adminBar').classList.add('tampil');
       document.getElementById('deviasiBox').style.display = 'block';
-      document.getElementById('btnMuteSos').style.display = 'inline-block';
-    } else if (isPeserta) {
-      document.getElementById('roleTag').textContent = 'HP Peserta (GPS)';
-      document.getElementById('bottomInfoPanel').style.display = 'none';
-    } else {
-      document.getElementById('roleTag').textContent = 'Penonton';
     }
 
     function escapeHtml(str) {
@@ -462,31 +438,11 @@
       }[m]));
     }
 
-    // --- KODE SOS PADA FIELD 3 ---
-    function kodeAlasanSos(alasan) {
-      const a = (alasan || '').toLowerCase();
-      if (a.includes('ban bocor') || a.includes('kerusakan sepeda')) return '-901';
-      if (a.includes('kecelakaan') || a.includes('terjatuh')) return '-902';
-      if (a.includes('cedera') || a.includes('kram')) return '-903';
-      if (a.includes('kelelahan') || a.includes('evakuasi')) return '-904';
-      return '-999';
-    }
-
-    function bacaAlasanDariKode(f3) {
-      const kode = Math.round(f3);
-      if (kode === -901) return 'Ban bocor / kerusakan sepeda';
-      if (kode === -902) return 'Kecelakaan / terjatuh';
-      if (kode === -903) return 'Cedera fisik / kram';
-      if (kode === -904) return 'Kelelahan / butuh evakuasi';
-      return 'Darurat SOS (Butuh Bantuan)';
-    }
-
     // --- SISTEM AUDIO & SIRINE ADMIN PANITIA ---
     let sharedAudioCtx = null;
     let sosSirenInterval = null;
     let sosMutedByAdmin = false;
     let lastSosSignature = '';
-    let hasActiveSosNow = false;
 
     function getAudioContext() {
       if (!sharedAudioCtx) {
@@ -502,11 +458,11 @@
       if (ctx.state === 'suspended') {
         ctx.resume().then(() => {
           perbaruiTombolAudioAdmin();
-          if (playTest || hasActiveSosNow) putarSirineSos();
+          if (playTest) putarSirineSos();
         });
       } else {
         perbaruiTombolAudioAdmin();
-        if (playTest || hasActiveSosNow) putarSirineSos();
+        if (playTest) putarSirineSos();
       }
     }
 
@@ -523,15 +479,13 @@
       }
     }
 
+    // Buka kunci audio otomatis pada sentuhan/klik pertama di halaman Admin
     if (isAdmin) {
       ['pointerdown', 'keydown'].forEach(evt => {
         window.addEventListener(evt, () => {
           const ctx = getAudioContext();
           if (ctx && ctx.state === 'suspended') {
-            ctx.resume().then(() => {
-              perbaruiTombolAudioAdmin();
-              if (hasActiveSosNow && !sosMutedByAdmin) putarSirineSos();
-            });
+            ctx.resume().then(perbaruiTombolAudioAdmin);
           }
         }, { passive: true });
       });
@@ -553,7 +507,7 @@
           osc.frequency.setValueAtTime(f, now + idx * 0.22);
 
           gain.gain.setValueAtTime(0.001, now + idx * 0.22);
-          gain.gain.exponentialRampToValueAtTime(0.35, now + idx * 0.22 + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.32, now + idx * 0.22 + 0.03);
           gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.22 + 0.19);
 
           osc.connect(gain);
@@ -565,7 +519,6 @@
     }
 
     function kelolaSirineSosAdmin(adaSos, signature) {
-      hasActiveSosNow = adaSos;
       if (!isAdmin || isReplayMode) {
         hentikanSirineSos();
         return;
@@ -575,9 +528,9 @@
           lastSosSignature = signature;
           sosMutedByAdmin = false;
           document.getElementById('btnMuteSos').textContent = 'Bisukan Suara';
-          if (!sosMutedByAdmin) putarSirineSos();
         }
         if (!sosMutedByAdmin && !sosSirenInterval) {
+          putarSirineSos();
           sosSirenInterval = setInterval(() => {
             if (!sosMutedByAdmin) putarSirineSos();
           }, 3500);
@@ -641,6 +594,7 @@
     // State Pengirim GPS HP & SOS
     let watchId = null;
     let sendTimer = null;
+    let simTimer = null;
     let sosRetryTimer = null;
     let latestPhonePos = null;
     let firstFixSent = false;
@@ -648,7 +602,6 @@
     let currentPhoneBatt = 'N/A';
     let wakeLockSentinel = null;
     let isSenderSosActive = false;
-    let isCancellingSos = false;
     let currentSenderSosReason = '';
 
     if ('getBattery' in navigator) {
@@ -686,7 +639,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (isPeserta && document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible') {
         const wasTracking = localStorage.getItem('jarots_auto_track') === 'true';
         if (wasTracking) {
           aktifkanWakeLock();
@@ -701,7 +654,6 @@
     }
 
     function bukaModePeserta() {
-      if (!isPeserta) return;
       document.getElementById('pesertaPanel').classList.add('tampil');
       setTimeout(() => map.invalidateSize(), 200);
       const prof = getSavedProfile(activeSenderSlot);
@@ -740,14 +692,11 @@
       activeSenderSlot = slotIdx;
       selectedRider = slotIdx;
       localStorage.setItem('jarots_active_slot', slotIdx);
-      localStorage.setItem(`jarots_profile_slot_${slotIdx}`, JSON.stringify({
-        fullName,
-        bib,
-        registeredAt: Date.now()
-      }));
+      localStorage.setItem(`jarots_profile_slot_${slotIdx}`, JSON.stringify({ fullName, bib }));
 
       ridersConfig[slotIdx].fullName = fullName;
       ridersConfig[slotIdx].bib = bib;
+      localStorage.setItem('jarots_4riders_cfg_v4', JSON.stringify(ridersConfig));
 
       perbaruiTampilanIdentitasPengirim();
       renderSemuaPesertaKePeta();
@@ -766,28 +715,9 @@
       if (prof && prof.fullName && prof.bib) {
         textEl.textContent = `No. ${prof.bib} — ${prof.fullName}`;
       } else {
-        textEl.textContent = 'Belum Diisi';
+        textEl.textContent = `${cfg.id} (Belum diisi nama)`;
       }
       slotEl.textContent = `(Slot ${activeSenderSlot + 1} • Ch #${cfg.ch})`;
-    }
-
-    function perbaruiTampilanTombolSosPeserta(aktif, alasan, statusLabel) {
-      const btnTrig = document.getElementById('btnTriggerSos');
-      const btnCanc = document.getElementById('btnCancelSos');
-      const statEl  = document.getElementById('sosSenderStatus');
-      if (!btnTrig) return;
-
-      if (aktif) {
-        btnTrig.classList.add('active-sos');
-        btnTrig.textContent = 'SINYAL SOS AKTIF!';
-        btnCanc.style.display = 'inline-block';
-        statEl.textContent = statusLabel || `Status SOS: DARURAT (${alasan || 'Butuh bantuan'})`;
-      } else {
-        btnTrig.classList.remove('active-sos');
-        btnTrig.textContent = 'KIRIM SINYAL SOS';
-        btnCanc.style.display = 'none';
-        statEl.textContent = statusLabel || 'Status SOS: Normal (Tidak Aktif)';
-      }
     }
 
     // --- MODAL KENDALA & TOMBOL SOS PESERTA ---
@@ -811,19 +741,6 @@
       document.getElementById('sosReasonInput').value = teks;
     }
 
-    function ambilKoordinatTerbaikSaatIni() {
-      if (latestPhonePos) return latestPhonePos;
-      const pts = ridersRawPoints[activeSenderSlot] || [];
-      if (pts.length > 0) {
-        const last = pts[pts.length - 1];
-        return { lat: last.lat, lng: last.lng, speed: last.speed || '0.0' };
-      }
-      if (gpxCoords.length > 0) {
-        return { lat: gpxCoords[0][0], lng: gpxCoords[0][1], speed: '0.0' };
-      }
-      return { lat: -7.4325, lng: 109.2515, speed: '0.0' };
-    }
-
     function konfirmasiKirimSos() {
       const alasan = document.getElementById('sosReasonInput').value.trim().replace(/\|/g, ' ');
       if (!alasan) {
@@ -832,19 +749,22 @@
       }
 
       tutupModalSos();
-      if (sosRetryTimer) { clearTimeout(sosRetryTimer); sosRetryTimer = null; }
-      isCancellingSos = false;
       isSenderSosActive = true;
       currentSenderSosReason = alasan;
       ridersConfig[activeSenderSlot].sos = true;
       ridersConfig[activeSenderSlot].sosReason = alasan;
 
-      perbaruiTampilanTombolSosPeserta(true, alasan, `Status SOS: DARURAT (${alasan}) — Mengirim ke Panitia...`);
+      document.getElementById('btnTriggerSos').classList.add('active-sos');
+      document.getElementById('btnTriggerSos').textContent = 'SINYAL SOS AKTIF!';
+      document.getElementById('btnCancelSos').style.display = 'inline-block';
+      document.getElementById('sosSenderStatus').textContent = `Status SOS: DARURAT (${alasan}) — Mengirim ke Admin...`;
 
       const kirimPaketSos = () => {
         if (!isSenderSosActive) return;
-        const k = ambilKoordinatTerbaikSaatIni();
-        kirimKoordinatPeserta(activeSenderSlot, k.lat, k.lng, k.speed, true, true, currentSenderSosReason);
+        const lat = latestPhonePos ? latestPhonePos.lat : (gpxCoords[0] ? gpxCoords[0][0] : -7.4325);
+        const lng = latestPhonePos ? latestPhonePos.lng : (gpxCoords[0] ? gpxCoords[0][1] : 109.2515);
+        const spd = latestPhonePos ? latestPhonePos.speed : '0.0';
+        kirimKoordinatPeserta(activeSenderSlot, lat, lng, spd, true, true, currentSenderSosReason);
       };
 
       if ('geolocation' in navigator) {
@@ -858,7 +778,7 @@
             kirimPaketSos();
           },
           () => kirimPaketSos(),
-          { enableHighAccuracy: true, timeout: 4000 }
+          { enableHighAccuracy: true, timeout: 5000 }
         );
       } else {
         kirimPaketSos();
@@ -866,16 +786,20 @@
     }
 
     function batalkanSosPeserta() {
-      if (sosRetryTimer) { clearTimeout(sosRetryTimer); sosRetryTimer = null; }
       isSenderSosActive = false;
-      isCancellingSos = true;
       currentSenderSosReason = '';
       ridersConfig[activeSenderSlot].sos = false;
       ridersConfig[activeSenderSlot].sosReason = '';
+      if (sosRetryTimer) { clearTimeout(sosRetryTimer); sosRetryTimer = null; }
+      document.getElementById('btnTriggerSos').classList.remove('active-sos');
+      document.getElementById('btnTriggerSos').textContent = 'KIRIM SINYAL SOS';
+      document.getElementById('btnCancelSos').style.display = 'none';
+      document.getElementById('sosSenderStatus').textContent = 'Status SOS: Normal (Dibatalkan)';
 
-      perbaruiTampilanTombolSosPeserta(false, '', 'Status SOS: Membatalkan sinyal ke server panitia...');
-      const k = ambilKoordinatTerbaikSaatIni();
-      kirimKoordinatPeserta(activeSenderSlot, k.lat, k.lng, k.speed, true, false, '');
+      if (latestPhonePos) {
+        kirimKoordinatPeserta(activeSenderSlot, latestPhonePos.lat, latestPhonePos.lng, latestPhonePos.speed, true, false, '');
+      }
+      renderSemuaPesertaKePeta();
     }
 
     // --- UTILITAS GEOMETRI & GPX ---
@@ -898,9 +822,7 @@
 
     function buatIconPeserta(r) {
       const bg = r.sos ? '#dc2626' : r.color;
-      const label = isPeserta
-        ? (r.sos ? 'POSISI SAYA (SOS)' : 'POSISI SAYA')
-        : (r.sos ? `SOS! No.${escapeHtml(r.bib)}` : `No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}`);
+      const label = r.sos ? `SOS! No.${escapeHtml(r.bib)}` : `No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}`;
       return L.divIcon({
         html: `<div style="background:${bg}; color:#fff; padding:2px 8px; border-radius:999px; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.45); font-size:11px; font-weight:700; white-space:nowrap;">${label}</div>`,
         className: '',
@@ -1026,33 +948,27 @@
       reader.readAsText(file);
     }
 
-    // --- RENDER PESERTA KE PETA ---
+    // --- RENDER SEMUA PESERTA KE PETA ---
     function renderRiderPills() {
-      if (isPeserta) return;
       const bar = document.getElementById('riderSelectorBar');
       bar.innerHTML = ridersConfig.map((r, idx) => {
         const pts = ridersRawPoints[idx] || [];
-        const hasRealSos = pts.length > 0 && r.sos;
         const aktifTag = pts.length > 0 ? ` (${pts.length})` : '';
-        const sosClass = hasRealSos ? 'sos-pill' : (selectedRider === idx ? 'selected' : '');
-        const label = hasRealSos ? `SOS! No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}` : `No.${escapeHtml(r.bib)} - ${escapeHtml(r.fullName)}${aktifTag}`;
+        const sosClass = r.sos ? 'sos-pill' : (selectedRider === idx ? 'selected' : '');
+        const label = r.sos ? `SOS! No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}` : `No.${escapeHtml(r.bib)} - ${escapeHtml(r.fullName)}${aktifTag}`;
         return `<button class="rider-pill ${sosClass}" onclick="pilihPeserta(${idx})">
-          <span class="rider-dot" style="background:${hasRealSos ? '#ffffff' : r.color};"></span>
+          <span class="rider-dot" style="background:${r.sos ? '#ffffff' : r.color};"></span>
           <span>${label}</span>
         </button>`;
       }).join('');
     }
 
     function pilihPeserta(idx) {
-      if (isPeserta) return;
       if (isReplayMode) keluarModeReplay();
       selectedRider = idx;
       renderSemuaPesertaKePeta();
       const pos = riderMapObjects[idx].lastPos;
-      if (pos) {
-        map.setView(pos, 16);
-        if (riderMapObjects[idx].marker) riderMapObjects[idx].marker.openPopup();
-      }
+      if (pos) map.setView(pos, 16);
     }
 
     function fokusKePesertaSos() {
@@ -1060,13 +976,12 @@
     }
 
     function renderSemuaPesertaKePeta() {
+      renderRiderPills();
       const batasMeter = parseFloat(document.getElementById('batasSelect').value);
-      const activeSosList = [];
+      let adaSosAktif = false;
       let sosSignature = '';
 
-      const indicesToRender = isPeserta ? [activeSenderSlot] : [0, 1, 2, 3];
-
-      for (const idx of indicesToRender) {
+      for (let idx = 0; idx < 4; idx++) {
         const cfg = ridersConfig[idx];
         const mapObj = riderMapObjects[idx];
         let rawPoints = ridersRawPoints[idx] || [];
@@ -1076,15 +991,7 @@
         }
 
         if (rawPoints.length === 0) {
-          cfg.sos = false;
-          cfg.sosReason = '';
-          if (isPeserta) {
-            const badge = document.getElementById('statusBadge');
-            badge.textContent = 'Siap Kirim GPS';
-            badge.className = 'badge';
-          } else if (idx === selectedRider) {
-            updatePanelInfoKosong(cfg);
-          }
+          if (idx === selectedRider) updatePanelInfoKosong(cfg);
           continue;
         }
 
@@ -1149,12 +1056,10 @@
         }) + ' WIB';
 
         const kendalaLabel = cfg.sosReason || terbaru.sosReason || 'Butuh bantuan';
-        const popupHtml = isPeserta
-          ? `<b>Posisi Saya (No. ${escapeHtml(cfg.bib)})</b><br>Update: ${waktuWIB}`
-          : `<b>No. ${escapeHtml(cfg.bib)} — ${escapeHtml(cfg.fullName)}</b><br>` +
-            `Kondisi: ${cfg.sos ? '<b style="color:#dc2626;">DARURAT SOS (' + escapeHtml(kendalaLabel) + ')</b>' : (keluarJalur ? 'Keluar Jalur (' + jarakMeter + 'm)' : 'Sesuai Rute GPX')}<br>` +
-            `Baterai HP: ${escapeHtml(terbaru.batt || '-')}<br>` +
-            `Waktu: ${waktuWIB}`;
+        const popupHtml = `<b>No. ${escapeHtml(cfg.bib)} — ${escapeHtml(cfg.fullName)}</b><br>` +
+                          `Kondisi: ${cfg.sos ? '<b style="color:#dc2626;">DARURAT SOS (' + escapeHtml(kendalaLabel) + ')</b>' : (keluarJalur ? 'Keluar Jalur (' + jarakMeter + 'm)' : 'Sesuai Rute GPX')}<br>` +
+                          `Baterai HP: ${escapeHtml(terbaru.batt || '-')}<br>` +
+                          `Waktu: ${waktuWIB}`;
 
         if (mapObj.marker) {
           mapObj.marker.setLatLng(posisiMarker);
@@ -1163,40 +1068,22 @@
         } else {
           mapObj.marker = L.marker(posisiMarker, { icon: buatIconPeserta(cfg) })
             .addTo(map)
-            .bindPopup(popupHtml);
-          if (!isPeserta) {
-            mapObj.marker.on('click', () => pilihPeserta(idx));
-          }
-        }
-
-        if (isPeserta) {
-          const badge = document.getElementById('statusBadge');
-          if (cfg.sos) {
-            badge.textContent = 'DARURAT SOS AKTIF';
-            badge.className = 'badge bahaya';
-          } else {
-            badge.textContent = 'GPS Terhubung';
-            badge.className = 'badge aktif';
-          }
-          if (pertamaKaliFokus) {
-            map.setView(posisiMarker, 16);
-            pertamaKaliFokus = false;
-          }
-          continue;
+            .bindPopup(popupHtml)
+            .on('click', () => pilihPeserta(idx));
         }
 
         if (cfg.sos && !isReplayMode) {
+          adaSosAktif = true;
           latestSosRiderIdx = idx;
-          sosSignature += `${idx}:${terbaru.time}:${kendalaLabel}|`;
-          activeSosList.push({
-            idx,
-            bib: cfg.bib,
-            fullName: cfg.fullName,
-            reason: kendalaLabel,
-            lat: terbaru.lat,
-            lng: terbaru.lng,
-            timeWIB
-          });
+          sosSignature += `${idx}:${kendalaLabel}|`;
+          document.getElementById('sosBanner').classList.add('tampil');
+          document.getElementById('sosBannerText').textContent =
+            `DARURAT SOS! No. ${cfg.bib} (${cfg.fullName}) — Kendala: "${kendalaLabel}" di ${terbaru.lat.toFixed(5)}, ${terbaru.lng.toFixed(5)} (${waktuWIB})`;
+          document.getElementById('sosGmapsLink').href = `https://www.google.com/maps?q=${terbaru.lat},${terbaru.lng}`;
+          if (isAdmin) {
+            document.getElementById('logStatus').textContent =
+              `[DARURAT SOS] No. ${cfg.bib} (${cfg.fullName}): "${kendalaLabel}" pukul ${waktuWIB}!`;
+          }
         }
 
         if (idx === selectedRider) {
@@ -1233,12 +1120,12 @@
                 `[No. ${cfg.bib}] Keluar jalur pukul ${waktuWIB} (${jarakMeter}m dari rute).`;
               bunyikanBeepOffTrack();
             } else {
-              badge.textContent = 'Live Aktif';
+              badge.textContent = 'Live Aktif (4 Peserta)';
               badge.className = 'badge aktif';
             }
           } else {
             document.getElementById('statusText').textContent = 'Sesuai Rute GPX';
-            badge.textContent = isAdmin ? 'Dalam Jalur (Aman)' : 'Live Aktif';
+            badge.textContent = isAdmin ? 'Dalam Jalur (Aman)' : 'Live Aktif (4 Peserta)';
             badge.className = 'badge aktif';
             banner.classList.remove('tampil');
           }
@@ -1250,37 +1137,13 @@
         }
       }
 
-      if (!isPeserta) {
-        renderRiderPills();
-        const sosBanner = document.getElementById('sosBanner');
-        if (activeSosList.length > 0 && !isReplayMode) {
-          sosBanner.classList.add('tampil');
-          const lastSos = activeSosList[activeSosList.length - 1];
-          document.getElementById('sosGmapsLink').href = `https://www.google.com/maps?q=${lastSos.lat},${lastSos.lng}`;
-
-          if (activeSosList.length === 1) {
-            document.getElementById('sosBannerText').textContent =
-              `DARURAT SOS! No. ${lastSos.bib} (${lastSos.fullName}) — Kendala: "${lastSos.reason}" (${lastSos.timeWIB})`;
-          } else {
-            const daftarSingkat = activeSosList.map(s => `No.${s.bib} ${s.fullName} (${s.reason})`).join(' | ');
-            document.getElementById('sosBannerText').textContent =
-              `DARURAT SOS (${activeSosList.length} PESERTA): ${daftarSingkat}`;
-          }
-
-          if (isAdmin) {
-            document.getElementById('logStatus').textContent =
-              `[DARURAT SOS] No. ${lastSos.bib} (${lastSos.fullName}) — ${lastSos.reason} (${lastSos.timeWIB}).`;
-          }
-        } else {
-          sosBanner.classList.remove('tampil');
-        }
-
-        kelolaSirineSosAdmin(activeSosList.length > 0, sosSignature);
+      if (!adaSosAktif) {
+        document.getElementById('sosBanner').classList.remove('tampil');
       }
+      kelolaSirineSosAdmin(adaSosAktif, sosSignature);
     }
 
     function updatePanelInfoKosong(cfg) {
-      if (isPeserta) return;
       document.getElementById('pesertaIdText').textContent = `No. ${cfg.bib} — ${cfg.fullName}`;
       document.getElementById('statusText').textContent = 'Menunggu GPS';
       document.getElementById('jarakTempuhText').textContent = '0.00 km';
@@ -1290,7 +1153,7 @@
       document.getElementById('coordText').textContent = '-';
       document.getElementById('timeText').textContent = '-';
       const badge = document.getElementById('statusBadge');
-      badge.textContent = isFetchingCloud ? 'Sinkronisasi...' : `Menunggu No. ${cfg.bib} (Ch #${cfg.ch})`;
+      badge.textContent = `Menunggu No. ${cfg.bib} (Ch #${cfg.ch})...`;
       badge.className = 'badge';
     }
 
@@ -1353,10 +1216,32 @@
       logSender(manualClick ? `Pelacakan GPS dimulai untuk No. ${prof.bib} (${prof.fullName}).` : 'Pelacakan GPS dilanjutkan otomatis.');
     }
 
+    function mulaiSimulasi4Peserta() {
+      hentikanGpsHp(true);
+      document.getElementById('btnStopGps').disabled = false;
+      document.getElementById('gpsPermText').textContent = 'Simulasi 4 Peserta';
+      document.getElementById('gpsAccText').textContent = '± 1.5 m (Simulasi)';
+
+      let stepIdx = [0, 3, 6, 9];
+      const jalankan = () => {
+        for (let i = 0; i < 4; i++) {
+          const pt = gpxCoords[stepIdx[i] % gpxCoords.length];
+          if (pt) {
+            kirimKoordinatPeserta(i, pt[0], pt[1], (24 + i * 2).toFixed(1), false, ridersConfig[i].sos, ridersConfig[i].sosReason);
+            stepIdx[i] = (stepIdx[i] + 1) % gpxCoords.length;
+          }
+        }
+      };
+      jalankan();
+      simTimer = setInterval(jalankan, 3000);
+      logSender('Simulasi 4 peserta bergerak bersamaan di rute GPX aktif!');
+    }
+
     function hentikanGpsHp(clearAutoFlag = true) {
       if (clearAutoFlag) localStorage.removeItem('jarots_auto_track');
       if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
       if (sendTimer !== null) { clearInterval(sendTimer); sendTimer = null; }
+      if (simTimer !== null) { clearInterval(simTimer); simTimer = null; }
       lepaskanWakeLock();
       document.getElementById('btnStartGps').disabled = false;
       document.getElementById('btnStopGps').disabled = true;
@@ -1390,41 +1275,32 @@
 
       if (kirimKeCloud && cfg.wk) {
         const battNum = parseInt(currentPhoneBatt, 10) || 100;
-        const nilaiField3 = sosFlag ? kodeAlasanSos(cleanReason) : speed;
         const statusStr = `${sosFlag ? 'SOS' : 'OK'}|${bib}|${fullName}|${sosFlag ? cleanReason : ''}`;
-        const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(cfg.wk)}&field1=${lat}&field2=${lng}&field3=${nilaiField3}&field4=${battNum}&field5=${sosFlag ? 1 : 0}&lat=${lat}&long=${lng}&status=${encodeURIComponent(statusStr)}`;
+        const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(cfg.wk)}&field1=${lat}&field2=${lng}&field3=${speed}&field4=${battNum}&field5=${sosFlag ? 1 : 0}&lat=${lat}&long=${lng}&status=${encodeURIComponent(statusStr)}`;
         try {
           const res = await fetch(url);
           const entry = await res.text();
           if (entry && entry !== '0') {
             if (sosRetryTimer) { clearTimeout(sosRetryTimer); sosRetryTimer = null; }
             if (sosFlag) {
-              perbaruiTampilanTombolSosPeserta(true, cleanReason, `Status SOS: TERKIRIM KE PANITIA ("${cleanReason}")`);
-              logSender(`[No.${bib} ${fullName}] Sinyal SOS terkirim ke Panitia (Entry #${entry})`);
-            } else {
-              if (isCancellingSos) {
-                isCancellingSos = false;
-                perbaruiTampilanTombolSosPeserta(false, '', 'Status SOS: Normal (Sudah Dibatalkan ke Server)');
-                logSender(`[No.${bib} ${fullName}] Pembatalan SOS diterima server (Entry #${entry})`);
-              } else {
-                logSender(`[No.${bib} ${fullName}] Koordinat terkirim (Entry #${entry})`);
-              }
+              document.getElementById('sosSenderStatus').textContent = `Status SOS: TERKIRIM KE ADMIN ("${cleanReason}")`;
             }
+            logSender(`[No.${bib} ${fullName}] Terkirim ke ThingSpeak #${cfg.ch} (Entry #${entry})`);
           } else {
-            logSender(`[No.${bib}] Menunggu jeda 15 detik server...`);
-            if (sosFlag || isCancellingSos) {
-              document.getElementById('sosSenderStatus').textContent = sosFlag
-                ? 'Status SOS: Mengantre kirim ke server (4 dtk)...'
-                : 'Status SOS: Mengantre pembatalan ke server (4 dtk)...';
+            logSender(`[No.${bib}] Menunggu jeda 15 detik ThingSpeak...`);
+            if (sosFlag) {
+              document.getElementById('sosSenderStatus').textContent = 'Status SOS: Mengantre kirim ke server (4 dtk)...';
               if (sosRetryTimer) clearTimeout(sosRetryTimer);
               sosRetryTimer = setTimeout(() => {
-                kirimKoordinatPeserta(idx, lat, lng, speed, true, sosFlag, cleanReason);
+                kirimKoordinatPeserta(idx, lat, lng, speed, true, true, cleanReason);
               }, 4000);
             }
           }
         } catch (e) {
-          logSender(`[No.${bib}] Gagal kirim data (cek koneksi internet HP).`);
+          logSender(`[No.${bib}] Gagal kirim ke ThingSpeak (cek internet HP).`);
         }
+      } else {
+        logSender(`[No.${bib} ${fullName}] Posisi lokal diperbarui: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       }
     }
 
@@ -1505,9 +1381,8 @@
       renderSemuaPesertaKePeta();
     }
 
-    // --- ADMIN PANEL, RESET TOTAL & EKSPOR GPX / CSV ---
+    // --- ADMIN PANEL & EKSPOR GPX / CSV ---
     function renderAdminRidersGrid() {
-      if (!isAdmin) return;
       const grid = document.getElementById('adminRidersGrid');
       grid.innerHTML = ridersConfig.map((r, idx) => `
         <div class="admin-rider-card">
@@ -1515,8 +1390,8 @@
             <strong><span class="rider-dot" style="background:${r.color}; margin-right:5px;"></span>Slot ${idx + 1} (${escapeHtml(r.id)})</strong>
             <button class="replay-btn" style="padding:3px 8px; font-size:11px;" onclick="salinLinkHpPeserta(${idx})">Salin Link HP</button>
           </div>
-          <input type="text" id="admBib_${idx}" value="${escapeHtml(r.bib)}" placeholder="Nomor Peserta" />
-          <input type="text" id="admName_${idx}" value="${escapeHtml(r.fullName)}" placeholder="Nama Peserta" />
+          <input type="text" id="admBib_${idx}" value="${escapeHtml(r.bib)}" placeholder="Nomor Peserta Default" />
+          <input type="text" id="admName_${idx}" value="${escapeHtml(r.fullName)}" placeholder="Nama Peserta Default" />
           <input type="text" id="admCh_${idx}" value="${escapeHtml(r.ch)}" placeholder="Channel ID ThingSpeak" />
           <input type="text" id="admWk_${idx}" value="${escapeHtml(r.wk)}" placeholder="Write API Key" />
           <input type="text" id="admRk_${idx}" value="${escapeHtml(r.rk)}" placeholder="Read API Key" />
@@ -1533,89 +1408,16 @@
         wk: document.getElementById(`admWk_${idx}`).value.trim(),
         rk: document.getElementById(`admRk_${idx}`).value.trim()
       }));
-      const cleanKeys = ridersConfig.map(r => ({ ch: r.ch, wk: r.wk, rk: r.rk }));
-      localStorage.setItem('jarots_4riders_cfg_v6', JSON.stringify(cleanKeys));
-      renderSemuaPesertaKePeta();
-      alert('Konfigurasi Channel ThingSpeak berhasil disimpan!');
-    }
-
-    async function resetTotalSemuaData() {
-      if (!isAdmin) return;
-      const yakin = confirm(
-        'Yakin ingin me-reset TOTAL semua data?\n\n' +
-        '• Semua nama peserta & nomor BIB dikembalikan ke default (Peserta 1–4)\n' +
-        '• Semua jejak GPS & status SOS di peta dihapus\n' +
-        '• HP peserta yang sedang terhubung akan diminta registrasi ulang dari nol'
-      );
-      if (!yakin) return;
-
-      if (isReplayMode) keluarModeReplay();
-      hentikanSirineSos();
-
-      // 1. Bersihkan seluruh memori lokal browser ini
-      localStorage.removeItem('jarots_4riders_cfg_v6');
-      localStorage.removeItem('jarots_4riders_cfg_v5');
-      localStorage.removeItem('jarots_4riders_cfg_v4');
-      localStorage.removeItem('jarots_auto_track');
-      localStorage.removeItem('jarots_active_slot');
-      for (let i = 0; i < 4; i++) {
-        localStorage.removeItem(`jarots_profile_slot_${i}`);
-      }
-
-      // 2. Kembalikan konfigurasi ke default awal
-      ridersConfig = DEFAULT_RIDERS.map(r => ({ ...r, sos: false, sosReason: '' }));
-      ridersRawPoints = { 0: [], 1: [], 2: [], 3: [] };
-      selectedRider = 0;
-      latestSosRiderIdx = null;
-      pertamaKaliFokus = true;
-
-      // 3. Bersihkan marker dan garis jejak di peta
-      riderMapObjects.forEach(obj => {
-        if (obj.marker) {
-          map.removeLayer(obj.marker);
-          obj.marker = null;
-        }
-        obj.snappedLine.setLatLngs([]);
-        obj.offTrackLine.setLatLngs([]);
-        obj.lastPos = null;
-      });
-
-      document.getElementById('sosBanner').classList.remove('tampil');
-      document.getElementById('alertBanner').classList.remove('tampil');
-      document.getElementById('logStatus').textContent = 'Log Admin: Reset total dijalankan, menyinkronkan ke 4 channel...';
-
-      renderAdminRidersGrid();
-      renderSemuaPesertaKePeta();
-
-      // 4. Kirim sinyal RESET ke ke-4 channel ThingSpeak agar HP peserta & penonton ikut bersih
-      const hasilKirim = await Promise.all(ridersConfig.map(async (cfg, idx) => {
-        if (!cfg.wk) return false;
-        const resetStatus = `RESET|${DEFAULT_RIDERS[idx].bib}|${DEFAULT_RIDERS[idx].fullName}|`;
-        const url = `https://api.thingspeak.com/update?api_key=${encodeURIComponent(cfg.wk)}&field1=0&field2=0&field3=0&field4=100&field5=0&status=${encodeURIComponent(resetStatus)}`;
-        try {
-          const res = await fetch(url);
-          const entry = await res.text();
-          return entry && entry !== '0';
-        } catch (e) {
-          return false;
-        }
-      }));
-
-      const suksesCount = hasilKirim.filter(Boolean).length;
-      if (suksesCount === 4) {
-        document.getElementById('logStatus').textContent = 'Log Admin: Reset total berhasil untuk semua 4 channel & HP peserta.';
-        alert('Reset total berhasil! Semua nama peserta dan peta telah dikembalikan ke awal.');
-      } else {
-        document.getElementById('logStatus').textContent = `Log Admin: Reset lokal selesai (${suksesCount}/4 channel menerima sinyal langsung).`;
-        alert(`Data lokal sudah bersih (${suksesCount}/4 channel langsung ter-update). Jika ada slot yang baru saja mengirim data, tunggu 15 detik lalu tekan Reset Total sekali lagi.`);
-      }
+      localStorage.setItem('jarots_4riders_cfg_v4', JSON.stringify(ridersConfig));
+      ambilSemuaDataThingSpeak();
+      alert('Konfigurasi 4 Channel ThingSpeak berhasil disimpan!');
     }
 
     function salinLinkHpPeserta(idx) {
       simpanKonfigurasiAdmin();
       const link = `${window.location.origin}${window.location.pathname}?role=peserta&p=${idx}`;
       navigator.clipboard.writeText(link).then(() => {
-        alert(`Link khusus HP Slot ${idx + 1} berhasil disalin! Bagikan link ini hanya kepada Peserta Slot ${idx + 1}:\n\n${link}`);
+        alert(`Link khusus HP Slot ${idx + 1} berhasil disalin!\nSaat peserta membuka link ini, mereka akan diminta mengisi Nama Lengkap & Nomor Peserta:\n\n${link}`);
       });
     }
 
@@ -1683,145 +1485,67 @@
       if (alarmAktif) bunyikanBeepOffTrack();
     }
 
-    // --- AMBIL DATA PARALEL CEPAT DARI THINGSPEAK ---
-    async function ambilSatuChannelThingSpeak(idx) {
-      const cfg = ridersConfig[idx];
-      if (!cfg.ch) return;
-      const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=150&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-      try {
-        const res = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        const data = await res.json();
-        const feeds = data.feeds || [];
-        let pts = [];
-        let latestSos = false;
-        let latestReason = '';
-        let latestResetMs = 0;
-
-        feeds.forEach(f => {
-          if (f.status && f.status.startsWith('RESET|')) {
-            pts = [];
-            latestSos = false;
-            latestReason = '';
-            cfg.bib = DEFAULT_RIDERS[idx].bib;
-            cfg.fullName = DEFAULT_RIDERS[idx].fullName;
-            latestResetMs = new Date(f.created_at).getTime();
-            return;
-          }
-
-          const lat = parseFloat(f.field1);
-          const lng = parseFloat(f.field2);
-          const f3  = parseFloat(f.field3);
-          let ptSos = (f.field5 === '1') || (!isNaN(f3) && f3 <= -900);
-          let ptReason = ptSos ? bacaAlasanDariKode(f3) : '';
-
-          if (f.status && f.status.includes('|')) {
-            const parts = f.status.split('|');
-            if (parts[0] === 'SOS') ptSos = true;
-            if (parts[0] === 'OK') ptSos = false;
-            if (parts[1]) cfg.bib = parts[1];
-            if (parts[2]) cfg.fullName = parts[2];
-            if (parts[3]) ptReason = parts[3];
-          }
-
-          if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-            pts.push({
-              lat, lng,
-              speed: (!isNaN(f3) && f3 >= 0) ? f.field3 : '0.0',
-              batt: f.field4 ? f.field4 + '%' : '-',
-              sos: ptSos,
-              sosReason: ptSos ? ptReason : '',
-              time: f.created_at
-            });
-            latestSos = ptSos;
-            latestReason = ptSos ? ptReason : '';
-          }
-        });
-
-        ridersRawPoints[idx] = pts;
-
-        if (feeds.length === 0) {
-          cfg.bib = DEFAULT_RIDERS[idx].bib;
-          cfg.fullName = DEFAULT_RIDERS[idx].fullName;
-          cfg.sos = false;
-          cfg.sosReason = '';
-          if (riderMapObjects[idx].marker) {
-            map.removeLayer(riderMapObjects[idx].marker);
-            riderMapObjects[idx].marker = null;
-          }
-          riderMapObjects[idx].snappedLine.setLatLngs([]);
-          riderMapObjects[idx].offTrackLine.setLatLngs([]);
-          riderMapObjects[idx].lastPos = null;
-          return;
-        }
-
-        if (pts.length > 0) {
-          if (isPeserta && idx === activeSenderSlot) {
-            if (!isCancellingSos) {
-              isSenderSosActive = latestSos;
-              currentSenderSosReason = latestReason;
-              cfg.sos = latestSos;
-              cfg.sosReason = latestReason;
-              perbaruiTampilanTombolSosPeserta(
-                latestSos,
-                latestReason,
-                latestSos ? `Status SOS: AKTIF DI SERVER (${latestReason})` : 'Status SOS: Normal (Tidak Aktif)'
-              );
-            }
-          } else {
-            cfg.sos = latestSos;
-            cfg.sosReason = latestSos ? latestReason : '';
-          }
-        } else {
-          cfg.sos = false;
-          cfg.sosReason = '';
-          if (riderMapObjects[idx].marker) {
-            map.removeLayer(riderMapObjects[idx].marker);
-            riderMapObjects[idx].marker = null;
-          }
-          riderMapObjects[idx].snappedLine.setLatLngs([]);
-          riderMapObjects[idx].offTrackLine.setLatLngs([]);
-          riderMapObjects[idx].lastPos = null;
-
-          if (isPeserta && idx === activeSenderSlot && latestResetMs > 0) {
-            const prof = getSavedProfile(activeSenderSlot);
-            const regTime = prof && prof.registeredAt ? prof.registeredAt : 0;
-            if (prof && latestResetMs > regTime) {
-              hentikanGpsHp(true);
-              localStorage.removeItem(`jarots_profile_slot_${activeSenderSlot}`);
-              isSenderSosActive = false;
-              currentSenderSosReason = '';
-              perbaruiTampilanTombolSosPeserta(false, '', 'Status SOS: Normal (Tidak Aktif)');
-              perbaruiTampilanIdentitasPengirim();
-              bukaModalRegistrasi();
-              logSender('Admin melakukan reset sistem. Silakan isi ulang Nama & No. BIB.');
-            }
-          }
-        }
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error(`Gagal memuat data Slot ${idx + 1}:`, err);
-      }
-    }
-
+    // --- AMBIL DATA & STATUS IDENTITAS/SOS DARI 4 CHANNEL THINGSPEAK ---
     async function ambilSemuaDataThingSpeak() {
-      if (isReplayMode || isFetchingCloud) return;
-      isFetchingCloud = true;
-      if (isPeserta) {
-        await ambilSatuChannelThingSpeak(activeSenderSlot);
-      } else {
-        await Promise.all([0, 1, 2, 3].map(idx => ambilSatuChannelThingSpeak(idx)));
+      if (isReplayMode) return;
+      for (let idx = 0; idx < 4; idx++) {
+        const cfg = ridersConfig[idx];
+        if (!cfg.ch) continue;
+        const url = `https://api.thingspeak.com/channels/${encodeURIComponent(cfg.ch)}/feeds.json?results=1000&status=true${cfg.rk ? '&api_key=' + encodeURIComponent(cfg.rk) : ''}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          const feeds = data.feeds || [];
+          const pts = [];
+          let latestSos = false;
+          let latestReason = '';
+
+          feeds.forEach(f => {
+            const lat = parseFloat(f.field1);
+            const lng = parseFloat(f.field2);
+            let ptSos = (f.field5 === '1');
+            let ptReason = '';
+
+            if (f.status && f.status.includes('|')) {
+              const parts = f.status.split('|');
+              if (parts[0] === 'SOS') ptSos = true;
+              if (parts[0] === 'OK') ptSos = false;
+              if (parts[1]) cfg.bib = parts[1];
+              if (parts[2]) cfg.fullName = parts[2];
+              if (parts[3]) ptReason = parts[3];
+            }
+
+            if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+              pts.push({
+                lat, lng,
+                speed: f.field3 || '0.0',
+                batt: f.field4 ? f.field4 + '%' : '-',
+                sos: ptSos,
+                sosReason: ptReason,
+                time: f.created_at
+              });
+              latestSos = ptSos;
+              latestReason = ptReason;
+            }
+          });
+
+          if (pts.length > 0) {
+            ridersRawPoints[idx] = pts;
+            if (!(roleParam === 'peserta' && idx === activeSenderSlot)) {
+              cfg.sos = latestSos;
+              cfg.sosReason = latestSos ? latestReason : '';
+            }
+          }
+        } catch (err) {
+          console.error(`Gagal memuat data Slot ${idx + 1}:`, err);
+        }
       }
-      isFetchingCloud = false;
       renderAdminRidersGrid();
       renderSemuaPesertaKePeta();
     }
 
     function fokusKePeserta() {
-      const targetIdx = isPeserta ? activeSenderSlot : selectedRider;
-      const pos = riderMapObjects[targetIdx].lastPos;
+      const pos = riderMapObjects[selectedRider].lastPos;
       if (pos) map.setView(pos, 16);
     }
 
@@ -1845,17 +1569,17 @@
         }
       }
 
-      if (isPeserta) {
+      if (roleParam === 'peserta') {
+        document.getElementById('roleTag').textContent = 'HP Peserta (GPS Sender)';
         bukaModePeserta();
       }
 
       renderAdminRidersGrid();
-      renderSemuaPesertaKePeta();
       await muatRuteGPX();
       await ambilSemuaDataThingSpeak();
       setInterval(ambilSemuaDataThingSpeak, 10000);
 
-      if (isPeserta && localStorage.getItem('jarots_auto_track') === 'true') {
+      if (localStorage.getItem('jarots_auto_track') === 'true') {
         document.getElementById('pesertaPanel').classList.add('tampil');
         perbaruiTampilanIdentitasPengirim();
         mulaiKirimGpsHp(false);
