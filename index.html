@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web-Based Live Tracking (4 Peserta + Daftar SOS) - Jarot's Company Ultra Cycling</title>
+  <title>Web-Based Live Tracking (4 Peserta) - Jarot's Company Ultra Cycling</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
@@ -18,10 +18,6 @@
       font-size: 11px; padding: 3px 8px; border-radius: 4px;
       background: #1e293b; color: #94a3b8; border: 1px solid #334155;
     }
-    .mode-switch-btn {
-      font-size: 11px; padding: 4px 10px; border-radius: 6px;
-      background: #2563eb; color: #ffffff; font-weight: 600; cursor: pointer; border: none;
-    }
     .badge {
       font-size: 12px; padding: 4px 10px; border-radius: 999px;
       background: #334155; color: #e2e8f0; font-weight: 600;
@@ -31,7 +27,7 @@
     .badge.bahaya { background: #dc2626; color: #ffffff; animation: kedip 0.9s infinite; }
     @keyframes kedip { 50% { opacity: 0.55; } }
 
-    /* Navigasi Tab Utama (Peta Live vs Daftar SOS) */
+    /* Navigasi Tab Utama (Hanya untuk Penonton & Panitia) */
     .main-tabs {
       display: flex; background: #1e293b; padding: 0 16px; gap: 6px;
       border-bottom: 1px solid #334155;
@@ -191,6 +187,7 @@
 
     #map { flex: 1; width: 100%; min-height: 220px; }
 
+    /* Panel Informasi Bawah (Hanya untuk Penonton & Panitia) */
     .panel {
       background: #ffffff; border-top: 1px solid #e2e8f0; padding: 10px 16px;
       display: flex; flex-direction: column; gap: 9px; max-height: 45vh; overflow-y: auto;
@@ -264,7 +261,7 @@
   <div id="regModal" class="modal-backdrop">
     <div class="modal-card">
       <h2>Registrasi Identitas Peserta</h2>
-      <p>Masukkan <b>Nama Lengkap</b> dan <b>Nomor Peserta</b> Anda sebelum memulai pelacakan agar panitia dapat memantau posisi Anda di peta.</p>
+      <p>Masukkan <b>Nama Lengkap</b> dan <b>Nomor Peserta (BIB)</b> Anda sebelum memulai pelacakan agar panitia dapat memantau posisi Anda di peta.</p>
       <div class="form-field">
         <label for="regSlotSelect">Slot Channel Peserta</label>
         <select id="regSlotSelect">
@@ -313,34 +310,33 @@
   </div>
 
   <header>
-    <h1>Ultra-Cycling Web Tracker (4 Peserta)</h1>
+    <h1>Ultra-Cycling Web Tracker</h1>
     <div class="header-right">
-      <button id="btnTogglePeserta" class="mode-switch-btn" onclick="bukaModePeserta()">Mode HP Peserta (GPS)</button>
-      <span id="roleTag" class="role-tag">Penonton (Read-Only)</span>
+      <span id="roleTag" class="role-tag">Penonton</span>
       <div id="statusBadge" class="badge">Menghubungkan...</div>
     </div>
   </header>
 
-  <!-- TAB UTAMA: PETA LIVE VS DAFTAR DARURAT SOS -->
-  <nav class="main-tabs">
+  <!-- TAB UTAMA: HANYA UNTUK PENONTON & ADMIN PANITIA -->
+  <nav id="mainTabsNav" class="main-tabs">
     <button id="tabBtnMap" class="main-tab-btn active" onclick="gantiTabUtama('map')">Peta Live Tracking</button>
     <button id="tabBtnSos" class="main-tab-btn" onclick="gantiTabUtama('sos')">
       Daftar Darurat SOS <span id="sosTabCount" class="tab-count">0</span>
     </button>
   </nav>
 
-  <!-- BANNER DARURAT SOS -->
+  <!-- BANNER DARURAT SOS (HANYA UNTUK PENONTON & ADMIN PANITIA) -->
   <div id="sosBanner">
     <span id="sosBannerText">DARURAT SOS: Peserta membutuhkan bantuan segera!</span>
     <div class="btn-group">
       <button class="download" onclick="gantiTabUtama('sos')">Buka Daftar SOS</button>
-      <button id="btnMuteSos" class="warn-btn" onclick="bisukanSuaraSos()">Bisukan Suara</button>
+      <button id="btnMuteSos" class="warn-btn" style="display:none;" onclick="bisukanSuaraSos()">Bisukan Suara</button>
       <button class="secondary" onclick="fokusKePesertaSos()">Fokus Lokasi</button>
       <a id="sosGmapsLink" href="#" target="_blank" style="background:#ffffff; color:#991b1b; padding:6px 10px; border-radius:6px; font-size:12px; text-decoration:none; font-weight:700;">Google Maps</a>
     </div>
   </div>
 
-  <!-- BANNER KELUAR JALUR -->
+  <!-- BANNER KELUAR JALUR (HANYA ADMIN PANITIA) -->
   <div id="alertBanner">
     <span id="alertText">PERINGATAN ADMIN: Peserta keluar dari jalur rute GPX!</span>
     <button class="secondary" onclick="fokusKePeserta()">Lihat Posisi</button>
@@ -348,7 +344,7 @@
 
   <!-- TAB 1: HALAMAN PETA LIVE & KONTROL -->
   <div id="mapViewContainer">
-    <!-- PANEL KHUSUS HP PESERTA -->
+    <!-- PANEL KHUSUS HP PESERTA (Hanya tampil jika ?role=peserta) -->
     <div id="pesertaPanel">
       <div class="browser-tip">
         <b>Penting:</b> Buka tautan ini langsung di <b>Safari / Google Chrome</b> (bukan peramban dalam WhatsApp) dan pilih <b>Izinkan / Allow</b> lokasi agar izin tersimpan permanen.
@@ -359,7 +355,7 @@
           Peserta Aktif: <strong id="activeRiderIdentityText">Belum Diisi</strong>
           <span id="activeSlotBadge" style="font-size:11px; color:#1e40af; margin-left:6px;">(Slot 1)</span>
         </div>
-        <button class="secondary" onclick="bukaModalRegistrasi()">Ubah Nama / Nomor Peserta</button>
+        <button class="secondary" onclick="bukaModalRegistrasi()">Ubah Nama / No. BIB</button>
       </div>
 
       <div class="sos-box">
@@ -385,7 +381,8 @@
         <div class="btn-group">
           <button id="btnStartGps" class="download" onclick="mulaiKirimGpsHp(true)">Mulai Kirim GPS Asli</button>
           <button id="btnStopGps" class="alarm-on" onclick="hentikanGpsHp()" disabled>Stop</button>
-          <button class="warn-btn" onclick="mulaiSimulasi4Peserta()">Simulasi 4 Peserta</button>
+          <button class="secondary" onclick="fokusKePeserta()">Posisi Saya</button>
+          <button class="secondary" onclick="lihatSemuaRute()">Lihat Rute</button>
         </div>
       </div>
 
@@ -401,7 +398,8 @@
 
     <div id="map"></div>
 
-    <div class="panel">
+    <!-- PANEL BAWAH: BIB & STATISTIK PESERTA (Dembunyikan di Mode HP Peserta) -->
+    <div id="bottomInfoPanel" class="panel">
       <div class="rider-selector-bar" id="riderSelectorBar"></div>
 
       <div id="replayBar">
@@ -419,7 +417,7 @@
       <div class="panel-top">
         <div class="info-grid">
           <div class="info-item">
-            <span>No. &amp; Nama Peserta</span>
+            <span>No. BIB &amp; Nama Peserta</span>
             <strong id="pesertaIdText">Jarots001</strong>
           </div>
           <div class="info-item">
@@ -482,8 +480,8 @@
           <div id="logStatus">Log Admin: Belum ada pelanggaran jalur atau SOS.</div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong>Konfigurasi 4 Channel ThingSpeak (Peserta 1 – 4):</strong>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <strong>Konfigurasi 4 Channel ThingSpeak (Bagikan Link Khusus HP ke Peserta):</strong>
           <button class="download" onclick="simpanKonfigurasiAdmin()">Simpan Perubahan Konfigurasi</button>
         </div>
         <div class="admin-riders-grid" id="adminRidersGrid"></div>
@@ -491,7 +489,7 @@
     </div>
   </div>
 
-  <!-- TAB 2: HALAMAN DAFTAR DARURAT SOS (UNTUK MONITOR SOS BERSAMAAN) -->
+  <!-- TAB 2: HALAMAN DAFTAR DARURAT SOS (HANYA UNTUK PENONTON & PANITIA) -->
   <div id="sosViewContainer">
     <div class="sos-section">
       <div class="sos-section-header">
@@ -545,11 +543,19 @@
     const params    = new URLSearchParams(window.location.search);
     const roleParam = params.get('role');
     const isAdmin   = roleParam === 'admin';
+    const isPeserta = roleParam === 'peserta';
 
     if (isAdmin) {
       document.getElementById('roleTag').textContent = 'Admin Panitia';
       document.getElementById('adminBar').classList.add('tampil');
       document.getElementById('deviasiBox').style.display = 'block';
+      document.getElementById('btnMuteSos').style.display = 'inline-block';
+    } else if (isPeserta) {
+      document.getElementById('roleTag').textContent = 'HP Peserta (GPS)';
+      document.getElementById('mainTabsNav').style.display = 'none';
+      document.getElementById('bottomInfoPanel').style.display = 'none';
+    } else {
+      document.getElementById('roleTag').textContent = 'Penonton';
     }
 
     function escapeHtml(str) {
@@ -558,8 +564,9 @@
       }[m]));
     }
 
-    // --- PERPINDAHAN TAB UTAMA ---
+    // --- PERPINDAHAN TAB UTAMA (PENONTON & PANITIA) ---
     function gantiTabUtama(tabName) {
+      if (isPeserta) return;
       activeTab = tabName;
       const mapView = document.getElementById('mapViewContainer');
       const sosView = document.getElementById('sosViewContainer');
@@ -745,7 +752,6 @@
     // State Pengirim GPS HP & SOS
     let watchId = null;
     let sendTimer = null;
-    let simTimer = null;
     let sosRetryTimer = null;
     let latestPhonePos = null;
     let firstFixSent = false;
@@ -790,7 +796,7 @@
     }
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
+      if (isPeserta && document.visibilityState === 'visible') {
         const wasTracking = localStorage.getItem('jarots_auto_track') === 'true';
         if (wasTracking) {
           aktifkanWakeLock();
@@ -805,6 +811,7 @@
     }
 
     function bukaModePeserta() {
+      if (!isPeserta) return;
       document.getElementById('pesertaPanel').classList.add('tampil');
       setTimeout(() => map.invalidateSize(), 200);
       const prof = getSavedProfile(activeSenderSlot);
@@ -908,7 +915,7 @@
       document.getElementById('btnTriggerSos').classList.add('active-sos');
       document.getElementById('btnTriggerSos').textContent = 'SINYAL SOS AKTIF!';
       document.getElementById('btnCancelSos').style.display = 'inline-block';
-      document.getElementById('sosSenderStatus').textContent = `Status SOS: DARURAT (${alasan}) — Mengirim ke Admin...`;
+      document.getElementById('sosSenderStatus').textContent = `Status SOS: DARURAT (${alasan}) — Mengirim ke Panitia...`;
 
       const kirimPaketSos = () => {
         if (!isSenderSosActive) return;
@@ -973,7 +980,9 @@
 
     function buatIconPeserta(r) {
       const bg = r.sos ? '#dc2626' : r.color;
-      const label = r.sos ? `SOS! No.${escapeHtml(r.bib)}` : `No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}`;
+      const label = isPeserta
+        ? (r.sos ? 'POSISI SAYA (SOS)' : 'POSISI SAYA')
+        : (r.sos ? `SOS! No.${escapeHtml(r.bib)}` : `No.${escapeHtml(r.bib)} ${escapeHtml(r.fullName)}`);
       return L.divIcon({
         html: `<div style="background:${bg}; color:#fff; padding:2px 8px; border-radius:999px; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.45); font-size:11px; font-weight:700; white-space:nowrap;">${label}</div>`,
         className: '',
@@ -1099,8 +1108,9 @@
       reader.readAsText(file);
     }
 
-    // --- RENDER DAFTAR SOS (AKTIF BERSAMAAN + RIWAYAT LOG) ---
+    // --- RENDER DAFTAR SOS (HANYA UNTUK PENONTON & PANITIA) ---
     function renderDaftarSosTab(activeSosList) {
+      if (isPeserta) return;
       const tabBtn   = document.getElementById('tabBtnSos');
       const tabCount = document.getElementById('sosTabCount');
       const headCnt  = document.getElementById('sosActiveHeadingCount');
@@ -1215,8 +1225,9 @@
       }
     }
 
-    // --- RENDER SEMUA PESERTA KE PETA ---
+    // --- RENDER PESERTA KE PETA ---
     function renderRiderPills() {
+      if (isPeserta) return;
       const bar = document.getElementById('riderSelectorBar');
       bar.innerHTML = ridersConfig.map((r, idx) => {
         const pts = ridersRawPoints[idx] || [];
@@ -1231,6 +1242,7 @@
     }
 
     function pilihPeserta(idx) {
+      if (isPeserta) return;
       if (isReplayMode) keluarModeReplay();
       selectedRider = idx;
       renderSemuaPesertaKePeta();
@@ -1243,12 +1255,15 @@
     }
 
     function renderSemuaPesertaKePeta() {
-      renderRiderPills();
+      if (!isPeserta) renderRiderPills();
       const batasMeter = parseFloat(document.getElementById('batasSelect').value);
       const activeSosList = [];
       let sosSignature = '';
 
-      for (let idx = 0; idx < 4; idx++) {
+      // Mode HP Peserta hanya merender dirinya sendiri (tanpa peserta lain)
+      const indicesToRender = isPeserta ? [activeSenderSlot] : [0, 1, 2, 3];
+
+      for (const idx of indicesToRender) {
         const cfg = ridersConfig[idx];
         const mapObj = riderMapObjects[idx];
         let rawPoints = ridersRawPoints[idx] || [];
@@ -1258,7 +1273,13 @@
         }
 
         if (rawPoints.length === 0) {
-          if (idx === selectedRider) updatePanelInfoKosong(cfg);
+          if (isPeserta) {
+            const badge = document.getElementById('statusBadge');
+            badge.textContent = 'Siap Kirim GPS';
+            badge.className = 'badge';
+          } else if (idx === selectedRider) {
+            updatePanelInfoKosong(cfg);
+          }
           continue;
         }
 
@@ -1323,10 +1344,12 @@
         }) + ' WIB';
 
         const kendalaLabel = cfg.sosReason || terbaru.sosReason || 'Butuh bantuan';
-        const popupHtml = `<b>No. ${escapeHtml(cfg.bib)} — ${escapeHtml(cfg.fullName)}</b><br>` +
-                          `Kondisi: ${cfg.sos ? '<b style="color:#dc2626;">DARURAT SOS (' + escapeHtml(kendalaLabel) + ')</b>' : (keluarJalur ? 'Keluar Jalur (' + jarakMeter + 'm)' : 'Sesuai Rute GPX')}<br>` +
-                          `Baterai HP: ${escapeHtml(terbaru.batt || '-')}<br>` +
-                          `Waktu: ${waktuWIB}`;
+        const popupHtml = isPeserta
+          ? `<b>Posisi Saya (No. ${escapeHtml(cfg.bib)})</b><br>Update: ${waktuWIB}`
+          : `<b>No. ${escapeHtml(cfg.bib)} — ${escapeHtml(cfg.fullName)}</b><br>` +
+            `Kondisi: ${cfg.sos ? '<b style="color:#dc2626;">DARURAT SOS (' + escapeHtml(kendalaLabel) + ')</b>' : (keluarJalur ? 'Keluar Jalur (' + jarakMeter + 'm)' : 'Sesuai Rute GPX')}<br>` +
+            `Baterai HP: ${escapeHtml(terbaru.batt || '-')}<br>` +
+            `Waktu: ${waktuWIB}`;
 
         if (mapObj.marker) {
           mapObj.marker.setLatLng(posisiMarker);
@@ -1335,10 +1358,29 @@
         } else {
           mapObj.marker = L.marker(posisiMarker, { icon: buatIconPeserta(cfg) })
             .addTo(map)
-            .bindPopup(popupHtml)
-            .on('click', () => pilihPeserta(idx));
+            .bindPopup(popupHtml);
+          if (!isPeserta) {
+            mapObj.marker.on('click', () => pilihPeserta(idx));
+          }
         }
 
+        if (isPeserta) {
+          const badge = document.getElementById('statusBadge');
+          if (cfg.sos) {
+            badge.textContent = 'DARURAT SOS AKTIF';
+            badge.className = 'badge bahaya';
+          } else {
+            badge.textContent = 'GPS Terhubung';
+            badge.className = 'badge aktif';
+          }
+          if (pertamaKaliFokus) {
+            map.setView(posisiMarker, 16);
+            pertamaKaliFokus = false;
+          }
+          continue;
+        }
+
+        // Logika Penonton & Admin Panitia
         if (cfg.sos && !isReplayMode) {
           latestSosRiderIdx = idx;
           sosSignature += `${idx}:${kendalaLabel}|`;
@@ -1389,12 +1431,12 @@
                 `[No. ${cfg.bib}] Keluar jalur pukul ${waktuWIB} (${jarakMeter}m dari rute).`;
               bunyikanBeepOffTrack();
             } else {
-              badge.textContent = 'Live Aktif (4 Peserta)';
+              badge.textContent = 'Live Aktif';
               badge.className = 'badge aktif';
             }
           } else {
             document.getElementById('statusText').textContent = 'Sesuai Rute GPX';
-            badge.textContent = isAdmin ? 'Dalam Jalur (Aman)' : 'Live Aktif (4 Peserta)';
+            badge.textContent = isAdmin ? 'Dalam Jalur (Aman)' : 'Live Aktif';
             badge.className = 'badge aktif';
             banner.classList.remove('tampil');
           }
@@ -1406,34 +1448,37 @@
         }
       }
 
-      const sosBanner = document.getElementById('sosBanner');
-      if (activeSosList.length > 0 && !isReplayMode) {
-        sosBanner.classList.add('tampil');
-        const lastSos = activeSosList[activeSosList.length - 1];
-        document.getElementById('sosGmapsLink').href = `https://www.google.com/maps?q=${lastSos.lat},${lastSos.lng}`;
+      if (!isPeserta) {
+        const sosBanner = document.getElementById('sosBanner');
+        if (activeSosList.length > 0 && !isReplayMode) {
+          sosBanner.classList.add('tampil');
+          const lastSos = activeSosList[activeSosList.length - 1];
+          document.getElementById('sosGmapsLink').href = `https://www.google.com/maps?q=${lastSos.lat},${lastSos.lng}`;
 
-        if (activeSosList.length === 1) {
-          document.getElementById('sosBannerText').textContent =
-            `DARURAT SOS! No. ${lastSos.bib} (${lastSos.fullName}) — Kendala: "${lastSos.reason}" (${lastSos.timeWIB})`;
+          if (activeSosList.length === 1) {
+            document.getElementById('sosBannerText').textContent =
+              `DARURAT SOS! No. ${lastSos.bib} (${lastSos.fullName}) — Kendala: "${lastSos.reason}" (${lastSos.timeWIB})`;
+          } else {
+            const daftarSingkat = activeSosList.map(s => `No.${s.bib} ${s.fullName} (${s.reason})`).join(' | ');
+            document.getElementById('sosBannerText').textContent =
+              `DARURAT SOS (${activeSosList.length} PESERTA BERSAMAAN): ${daftarSingkat}`;
+          }
+
+          if (isAdmin) {
+            document.getElementById('logStatus').textContent =
+              `[DARURAT SOS] ${activeSosList.length} peserta sedang aktif SOS. Buka tab "Daftar Darurat SOS" untuk detail lengkap.`;
+          }
         } else {
-          const daftarSingkat = activeSosList.map(s => `No.${s.bib} ${s.fullName} (${s.reason})`).join(' | ');
-          document.getElementById('sosBannerText').textContent =
-            `DARURAT SOS (${activeSosList.length} PESERTA BERSAMAAN): ${daftarSingkat}`;
+          sosBanner.classList.remove('tampil');
         }
 
-        if (isAdmin) {
-          document.getElementById('logStatus').textContent =
-            `[DARURAT SOS] ${activeSosList.length} peserta sedang aktif SOS. Buka tab "Daftar Darurat SOS" untuk detail lengkap.`;
-        }
-      } else {
-        sosBanner.classList.remove('tampil');
+        renderDaftarSosTab(activeSosList);
+        kelolaSirineSosAdmin(activeSosList.length > 0, sosSignature);
       }
-
-      renderDaftarSosTab(activeSosList);
-      kelolaSirineSosAdmin(activeSosList.length > 0, sosSignature);
     }
 
     function updatePanelInfoKosong(cfg) {
+      if (isPeserta) return;
       document.getElementById('pesertaIdText').textContent = `No. ${cfg.bib} — ${cfg.fullName}`;
       document.getElementById('statusText').textContent = 'Menunggu GPS';
       document.getElementById('jarakTempuhText').textContent = '0.00 km';
@@ -1506,32 +1551,10 @@
       logSender(manualClick ? `Pelacakan GPS dimulai untuk No. ${prof.bib} (${prof.fullName}).` : 'Pelacakan GPS dilanjutkan otomatis.');
     }
 
-    function mulaiSimulasi4Peserta() {
-      hentikanGpsHp(true);
-      document.getElementById('btnStopGps').disabled = false;
-      document.getElementById('gpsPermText').textContent = 'Simulasi 4 Peserta';
-      document.getElementById('gpsAccText').textContent = '± 1.5 m (Simulasi)';
-
-      let stepIdx = [0, 3, 6, 9];
-      const jalankan = () => {
-        for (let i = 0; i < 4; i++) {
-          const pt = gpxCoords[stepIdx[i] % gpxCoords.length];
-          if (pt) {
-            kirimKoordinatPeserta(i, pt[0], pt[1], (24 + i * 2).toFixed(1), false, ridersConfig[i].sos, ridersConfig[i].sosReason);
-            stepIdx[i] = (stepIdx[i] + 1) % gpxCoords.length;
-          }
-        }
-      };
-      jalankan();
-      simTimer = setInterval(jalankan, 3000);
-      logSender('Simulasi 4 peserta bergerak bersamaan di rute GPX aktif!');
-    }
-
     function hentikanGpsHp(clearAutoFlag = true) {
       if (clearAutoFlag) localStorage.removeItem('jarots_auto_track');
       if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
       if (sendTimer !== null) { clearInterval(sendTimer); sendTimer = null; }
-      if (simTimer !== null) { clearInterval(simTimer); simTimer = null; }
       lepaskanWakeLock();
       document.getElementById('btnStartGps').disabled = false;
       document.getElementById('btnStopGps').disabled = true;
@@ -1573,11 +1596,11 @@
           if (entry && entry !== '0') {
             if (sosRetryTimer) { clearTimeout(sosRetryTimer); sosRetryTimer = null; }
             if (sosFlag) {
-              document.getElementById('sosSenderStatus').textContent = `Status SOS: TERKIRIM KE ADMIN ("${cleanReason}")`;
+              document.getElementById('sosSenderStatus').textContent = `Status SOS: TERKIRIM KE PANITIA ("${cleanReason}")`;
             }
-            logSender(`[No.${bib} ${fullName}] Terkirim ke ThingSpeak #${cfg.ch} (Entry #${entry})`);
+            logSender(`[No.${bib} ${fullName}] Koordinat terkirim (Entry #${entry})`);
           } else {
-            logSender(`[No.${bib}] Menunggu jeda 15 detik ThingSpeak...`);
+            logSender(`[No.${bib}] Menunggu jeda 15 detik server...`);
             if (sosFlag) {
               document.getElementById('sosSenderStatus').textContent = 'Status SOS: Mengantre kirim ke server (4 dtk)...';
               if (sosRetryTimer) clearTimeout(sosRetryTimer);
@@ -1587,10 +1610,8 @@
             }
           }
         } catch (e) {
-          logSender(`[No.${bib}] Gagal kirim ke ThingSpeak (cek internet HP).`);
+          logSender(`[No.${bib}] Gagal kirim data (cek koneksi internet HP).`);
         }
-      } else {
-        logSender(`[No.${bib} ${fullName}] Posisi lokal diperbarui: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
       }
     }
 
@@ -1673,6 +1694,7 @@
 
     // --- ADMIN PANEL & EKSPOR GPX / CSV ---
     function renderAdminRidersGrid() {
+      if (!isAdmin) return;
       const grid = document.getElementById('adminRidersGrid');
       grid.innerHTML = ridersConfig.map((r, idx) => `
         <div class="admin-rider-card">
@@ -1707,7 +1729,7 @@
       simpanKonfigurasiAdmin();
       const link = `${window.location.origin}${window.location.pathname}?role=peserta&p=${idx}`;
       navigator.clipboard.writeText(link).then(() => {
-        alert(`Link khusus HP Slot ${idx + 1} berhasil disalin!\nSaat peserta membuka link ini, mereka akan diminta mengisi Nama Lengkap & Nomor Peserta:\n\n${link}`);
+        alert(`Link khusus HP Slot ${idx + 1} berhasil disalin! Bagikan link ini hanya kepada Peserta Slot ${idx + 1}:\n\n${link}`);
       });
     }
 
@@ -1775,7 +1797,7 @@
       if (alarmAktif) bunyikanBeepOffTrack();
     }
 
-    // --- AMBIL DATA PARALEL CEPAT DARI 4 CHANNEL THINGSPEAK ---
+    // --- AMBIL DATA PARALEL CEPAT DARI THINGSPEAK ---
     async function ambilSatuChannelThingSpeak(idx) {
       const cfg = ridersConfig[idx];
       if (!cfg.ch) return;
@@ -1822,7 +1844,7 @@
 
         if (pts.length > 0) {
           ridersRawPoints[idx] = pts;
-          if (!(roleParam === 'peserta' && idx === activeSenderSlot)) {
+          if (!(isPeserta && idx === activeSenderSlot)) {
             cfg.sos = latestSos;
             cfg.sosReason = latestSos ? latestReason : '';
           }
@@ -1836,14 +1858,19 @@
     async function ambilSemuaDataThingSpeak() {
       if (isReplayMode || isFetchingCloud) return;
       isFetchingCloud = true;
-      await Promise.all([0, 1, 2, 3].map(idx => ambilSatuChannelThingSpeak(idx)));
+      if (isPeserta) {
+        await ambilSatuChannelThingSpeak(activeSenderSlot);
+      } else {
+        await Promise.all([0, 1, 2, 3].map(idx => ambilSatuChannelThingSpeak(idx)));
+      }
       isFetchingCloud = false;
       renderAdminRidersGrid();
       renderSemuaPesertaKePeta();
     }
 
     function fokusKePeserta() {
-      const pos = riderMapObjects[selectedRider].lastPos;
+      const targetIdx = isPeserta ? activeSenderSlot : selectedRider;
+      const pos = riderMapObjects[targetIdx].lastPos;
       if (pos) map.setView(pos, 16);
     }
 
@@ -1867,8 +1894,7 @@
         }
       }
 
-      if (roleParam === 'peserta') {
-        document.getElementById('roleTag').textContent = 'HP Peserta (GPS Sender)';
+      if (isPeserta) {
         bukaModePeserta();
       }
 
@@ -1878,7 +1904,7 @@
       await ambilSemuaDataThingSpeak();
       setInterval(ambilSemuaDataThingSpeak, 10000);
 
-      if (localStorage.getItem('jarots_auto_track') === 'true') {
+      if (isPeserta && localStorage.getItem('jarots_auto_track') === 'true') {
         document.getElementById('pesertaPanel').classList.add('tampil');
         perbaruiTampilanIdentitasPengirim();
         mulaiKirimGpsHp(false);
